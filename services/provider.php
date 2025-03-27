@@ -1,10 +1,12 @@
 <?php
 /**
- * @package     WT Yandex Map items
- *
- * @copyright   (C) 2022 Sergey Tolkachyov
- * @link https://web-tolk.ru
- * @license     GNU General Public License version 2 or later
+ * @package       WT Yandex map items
+ * @version    2.0.0
+ * @author     Sergey Tolkachyov
+ * @copyright  Copyright (c) 2022 - 2025 Sergey Tolkachyov. All rights reserved.
+ * @license    GNU/GPL license: https://www.gnu.org/copyleft/gpl.html
+ * @link       https://web-tolk.ru
+ * @since      1.0.0
  */
 
 defined('_JEXEC') or die;

@@ -1,59 +1,43 @@
 <?php
 /**
- * @package     Joomla.Administrator
- * @subpackage  mod_quickicon
- *
- * @copyright   (C) 2018 Open Source Matters, Inc. <https://www.joomla.org>
- * @license     GNU General Public License version 2 or later; see LICENSE.txt
+ * @package       WT Yandex map items
+ * @version    2.0.0
+ * @author     Sergey Tolkachyov
+ * @copyright  Copyright (c) 2022 - 2025 Sergey Tolkachyov. All rights reserved.
+ * @license    GNU/GPL license: https://www.gnu.org/copyleft/gpl.html
+ * @link       https://web-tolk.ru
+ * @since      1.0.0
  */
 
 namespace Joomla\Module\Wtyandexmapitems\Site\Dispatcher;
 
-\defined('JPATH_PLATFORM') or die;
+defined('_JEXEC') or die;
 
-use Joomla\CMS\Application\CMSApplicationInterface;
 use Joomla\CMS\Dispatcher\AbstractModuleDispatcher;
-use Joomla\CMS\Extension\ModuleInterface;
-use Joomla\Input\Input;
 use Joomla\Module\Wtyandexmapitems\Site\Helper\WtyandexmapitemsHelper;
-use Joomla\Registry\Registry;
 
 /**
  * Dispatcher class for mod_wtyandexmapitems
  *
- * @since  4.0.0
+ * @since  2.0.0
  */
 class Dispatcher extends AbstractModuleDispatcher
 {
-
-	/**
-	 * The module extension. Used to fetch the module helper.
-	 *
-	 * @var   ModuleInterface|null
-	 * @since 3.0.9
-	 */
-	private $moduleExtension;
-
-
-	public function __construct(\stdClass $module, CMSApplicationInterface $app, Input $input)
-	{
-		parent::__construct($module, $app, $input);
-
-		$this->moduleExtension = $this->app->bootModule('mod_wtyandexmapitems', 'site');
-	}
 
 	/**
 	 * Returns the layout data.
 	 *
 	 * @return  array
 	 *
-	 * @since   4.0.0
+	 * @since   2.0.0
 	 */
-	protected function getLayoutData()
+	protected function getLayoutData(): array
 	{
 		$data = parent::getLayoutData();
+		$context = $data['params']->get('data_source', 'com_content.article');
 
-		$data['placemarks'] = (new WtyandexmapitemsHelper)->getPlacemarks($data['params'], $this->getApplication());
+        $helper = new WtyandexmapitemsHelper();
+        $data['layouts'] = $helper->getLayouts($context, $data['params']);
 
 		return $data;
 	}

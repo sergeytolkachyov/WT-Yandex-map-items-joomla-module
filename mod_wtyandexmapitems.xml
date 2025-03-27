@@ -2,21 +2,26 @@
 <extension type="module" client="site" method="upgrade">
 	<name>MOD_WTYANDEXMAPITEMS</name>
 	<author>Sergey Tolkachyov</author>
-	<creationDate>13/09/2022</creationDate>
-	<copyright>(C) 2022 Sergey Tolkachyov.</copyright>
-	<license>GNU General Public License version 2 or later</license>
+	<creationDate>27.03.2025</creationDate>
+	<copyright>Copyright (c) 2022 - 2025 Sergey Tolkachyov. All rights reserved.</copyright>
+	<license>GNU General Public License version 3 or later</license>
 	<authorEmail>info@web-tolk.ru</authorEmail>
 	<authorUrl>https://web-tolk.ru</authorUrl>
-	<version>1.0.0</version>
+	<version>2.0.0</version>
 	<description>MOD_WTYANDEXMAPITEMS_DESC</description>
 	<namespace path="src">Joomla\Module\Wtyandexmapitems</namespace>
 	<scriptfile>script.php</scriptfile>
 	<files>
 		<folder module="mod_wtyandexmapitems">src</folder>
-		<folder>language</folder>
 		<folder>services</folder>
 		<folder>tmpl</folder>
 	</files>
+	<media folder="media" destination="mod_wtyandexmapitems">
+		<folder>js</folder>
+	</media>
+	<layouts folder="layouts">
+		<folder>modules</folder>
+	</layouts>
 	<languages>
 		<language tag="en-GB">language/en-GB/mod_wtyandexmapitems.ini</language>
 		<language tag="en-GB">language/en-GB/mod_wtyandexmapitems.sys.ini</language>
@@ -26,9 +31,27 @@
 	<config>
 		<fields name="params">
 			<fieldset name="basic">
+				<field addfieldprefix="Joomla\Module\Wtyandexmapitems\Site\Fields" type="moduleinfo" name="moduleinfo"/>
+				<field type="text"
+					   name="yandex_map_api_key"
+					   label="MOD_WTYANDEXMAPITEMS_YANDEX_MAP_API_KEY"
+				/>
+				<field type="radio"
+					   name="yandex_api_type"
+					   label="MOD_WTYANDEXMAPITEMS_YANDEX_API_TYPE"
+					   default="free" class="btn-group btn-group-yesno">
+					<option value="free">MOD_WTYANDEXMAPITEMS_YANDEX_API_TYPE_FREE</option>
+					<option value="paid">MOD_WTYANDEXMAPITEMS_YANDEX_API_TYPE_PAID</option>
+				</field>
+				<field type="note"
+					   name="yandex_api_type_desc"
+					   description="MOD_WTYANDEXMAPITEMS_YANDEX_API_TYPE_DESC"
+					   class="col-12 alert alert-info"
+				/>
 				<field name="data_source"
 					   type="groupedlist"
 					   label="MOD_WTYANDEXMAPITEMS_DATA_SOURCE"
+					   description="MOD_WTYANDEXMAPITEMS_DATA_SOURCE_DESC"
 					   default="com_content.article">
 					<group label="MOD_WTYANDEXMAPITEMS_DATA_GROUP_LABEL_COM_CONTENT">
 						<option value="com_content.article">MOD_WTYANDEXMAPITEMS_DATA_GROUP_LABEL_COM_CONTENT_ARTICLE</option>
@@ -50,199 +73,269 @@
 						showon="data_source:com_content.article"
 				/>
 				<field
-						name="com_content_category_yandex_map_coords_field_id"
-						type="sql"
-						label="MOD_WTYANDEXMAPITEMS_COM_CONTENT_CATEGORY_YANDEX_MAP_COORDS_FIELD_ID"
-						default=""
-						query="SELECT id, title FROM #__fields WHERE state = 1 AND context = 'com_content.category'"
-						key_field="id"
-						value_field="title"
-						showon="data_source:com_content.category"
-				/>
+						name="use_custom_cache_time"
+						type="radio"
+						label="MOD_WTYANDEXMAPITEMS_USE_CUSTOM_CACHE_TIME"
+						default="0"
+						filter="integer"
+						layout="joomla.form.field.radio.switcher"
+				>
+					<option value="0">JNO</option>
+					<option value="1">JYES</option>
+				</field>
 				<field
-						name="com_contact_contact_yandex_map_coords_field_id"
-						type="sql"
-						label="MOD_WTYANDEXMAPITEMS_COM_CONTACT_CONTACT_YANDEX_MAP_COORDS_FIELD_ID"
-						default=""
-						query="SELECT id, title FROM #__fields WHERE state = 1 AND context = 'com_contact.contact'"
-						key_field="id"
-						value_field="title"
-						showon="data_source:com_contact.contact"
+						name="custom_cache_time"
+						type="number"
+						label="MOD_WTYANDEXMAPITEMS_CUSTOM_CACHE_TIME"
+						description="MOD_WTYANDEXMAPITEMS_CUSTOM_CACHE_TIME_DESC"
+						filter="integer"
+						min="0"
+						default="60"
+						showon="use_custom_cache_time:1"
 				/>
-				<field
-						name="com_contact_category_yandex_map_coords_field_id"
-						type="sql"
-						label="MOD_WTYANDEXMAPITEMS_COM_CONTACT_CATEGORY_YANDEX_MAP_COORDS_FIELD_ID"
-						default=""
-						query="SELECT id, title FROM #__fields WHERE state = 1 AND context = 'com_contact.categories'"
-						key_field="id"
-						value_field="title"
-						showon="data_source:com_contact.categories"
-				/>
-
-				<field type="filelist"
-					   name="balloonContentBody_layout"
-					   label="MOD_WTYANDEXMAPITEMS_BALLOONCONTENTBODY_LAYOUT"
-					   description="MOD_WTYANDEXMAPITEMS_BALLOONCONTENTBODY_LAYOUT_DESC"
-					   directory="modules/mod_wtyandexmapitems/tmpl/sublayouts"
-					   stripext="true"
-					   hide_default="true"/>
-
 			</fieldset>
-			<fieldset name="com_content_articles_params" label="MOD_WTYANDEXMAPITEMS_COM_CONTENT_ARTICLES_PARAMS_FIELDSET_LABEL">
-				<fieldset name="com_content_articles_params_dysplay"
-						  label="MOD_WTYANDEXMAPITEMS_COM_CONTENT_ARTICLES_PARAMS_DYSPLAY_FIELDSET_LABEL"
-						  description="MOD_WTYANDEXMAPITEMS_COM_CONTENT_ARTICLES_PARAMS_DYSPLAY_FIELDSET_DESC">
-
+			<fieldset name="com_content_articles_params"
+					  label="MOD_WTYANDEXMAPITEMS_COM_CONTENT_ARTICLES_PARAMS_FIELDSET_LABEL">
+				<field
+						name="article_catid"
+						type="category"
+						label="JCATEGORY"
+						extension="com_content"
+						multiple="true"
+						filter="intarray"
+						class="multipleCategories"
+						layout="joomla.form.field.list-fancy-select"
+						showon="data_source:com_content.article"
+				/>
+				<field
+						name="article_tag"
+						type="tag"
+						label="JTAG"
+						mode="nested"
+						multiple="true"
+						filter="intarray"
+						class="multipleTags"
+						showon="data_source:com_content.article"
+				/>
+				<field
+						name="count"
+						type="number"
+						label="MOD_WTYANDEXMAPITEMS_ITEMS_COUNT"
+						description="MOD_WTYANDEXMAPITEMS_ITEMS_COUNT_DESC"
+						default="5"
+						filter="integer"
+						min="0"
+						validate="number"
+						showon="data_source:com_content.article"
+				/>
+				<field
+						name="item_fields_for_marker"
+						type="textarea"
+						rows="3"
+						label="MOD_WTYANDEXMAPITEMS_ITEM_FIELDS_FOR_MARKER"
+						default="id,catid,title,introtext,images,link,linkText"
+						showon="data_source:com_content.article"
+				/>
+				<field
+						name="item_fields_for_popup"
+						type="textarea"
+						rows="3"
+						label="MOD_WTYANDEXMAPITEMS_ITEM_FIELDS_FOR_POPUP"
+						default="id,catid,title,introtext,images,link,linkText"
+						showon="data_source:com_content.article"
+				/>
+				<field
+						name="article_triggerevents"
+						type="radio"
+						label="MOD_WTYANDEXMAPITEMS_ARTICLE_TRIGGEREVENTS"
+						layout="joomla.form.field.radio.switcher"
+						default="1"
+						filter="integer"
+						showon="data_source:com_content.article"
+				>
+					<option value="0">JNO</option>
+					<option value="1">JYES</option>
+				</field>
+				<field type="note"
+					   label="MOD_WTYANDEXMAPITEMS_ARTICLE_ITEM_PROPERTIES_LABEL"
+					   description="MOD_WTYANDEXMAPITEMS_ARTICLE_ITEM_PROPERTIES_DESC"
+					   class="alert alert-info w-100"/>
+				<field type="note"
+					   label="MOD_WTYANDEXMAPITEMS_ARTICLE_ITEM_CUSTOM_FIELDS_PROPERTIES_LABEL"
+					   description="MOD_WTYANDEXMAPITEMS_ARTICLE_ITEM_CUSTOM_FIELDS_PROPERTIES_DESC"
+					   class="alert alert-info w-100"/>
+			</fieldset>
+			<fieldset name="display" label="MOD_WTYANDEXMAPITEMS_DISPLAY_FIELDSET_LABEL">
+				<fieldset name="display_params_marker"
+						  label="MOD_WTYANDEXMAPITEMS_DISPLAY_PARAMS_MARKER"
+						  description="MOD_WTYANDEXMAPITEMS_DISPLAY_PARAMS_MARKER_DESC">
 					<field
-							name="show_article_title"
+							name="is_default_marker"
 							type="radio"
-							layout="joomla.form.field.radio.switcher"
-							label="MOD_WTYANDEXMAPITEMS_SHOW_ARTICLE_TITLE"
+							label="MOD_WTYANDEXMAPITEMS_IS_DEFAULT_MARKER"
 							default="1"
 							filter="integer"
-							showon="data_source:com_content.article"
-					>
-						<option value="0">JHIDE</option>
-						<option value="1">JSHOW</option>
-					</field>
-
-
-					<field
-							name="article_baloon_text"
-							type="list"
-							label="MOD_WTYANDEXMAPITEMS_ARTICLE_BALOON_TEXT"
-							default="fulltext"
-							showon="data_source:com_content.article"
-					>
-						<option value="fulltext">MOD_WTYANDEXMAPITEMS_ARTICLE_BALOON_TEXT_FULLTEXT</option>
-						<option value="introtext">MOD_WTYANDEXMAPITEMS_ARTICLE_BALOON_TEXT_INTROTEXT</option>
-						<option value="text_from_field">MOD_WTYANDEXMAPITEMS_ARTICLE_BALOON_TEXT_TEXT_FROM_FIELD</option>
-						<option value="none">JHIDE</option>
-					</field>
-					<field
-							name="com_content_article_article_baloon_text_from_field_field_id"
-							type="sql"
-							label="MOD_WTYANDEXMAPITEMS_COM_CONTENT_ARTICLE_ARTICLE_BALOON_TEXT_FROM_FIELD_FIELD_ID"
-							default=""
-							query="SELECT id, title FROM #__fields WHERE state = 1 AND context = 'com_content.article'"
-							key_field="id"
-							value_field="title"
-							showon="data_source:com_content.article[AND]article_baloon_text:text_from_field"
-					/>
-
-
-<!--					Images-->
-					<field
-							name="article_img_intro_full"
-							type="list"
-							label="MOD_WTYANDEXMAPITEMS_ARTICLE_IMG_INTRO_FULL"
-							default="fulltext"
-							showon="data_source:com_content.article"
-					>
-						<option value="intro">MOD_WTYANDEXMAPITEMS_ARTICLE_IMG_INTRO_FULL_INTRO</option>
-						<option value="full">MOD_WTYANDEXMAPITEMS_ARTICLE_IMG_INTRO_FULL_FULL</option>
-						<option value="image_from_field">MOD_WTYANDEXMAPITEMS_ARTICLE_IMG_INTRO_FULL_IMAGE_FROM_FIELD</option>
-						<option value="none">JHIDE</option>
-					</field>
-					<field
-							name="com_content_article_article_baloon_image_from_field_field_id"
-							type="sql"
-							label="MOD_WTYANDEXMAPITEMS_COM_CONTENT_ARTICLE_ARTICLE_BALOON_IMAGE_FROM_FIELD_FIELD_ID"
-							default=""
-							query="SELECT id, title FROM #__fields WHERE state = 1 AND context = 'com_content.article'"
-							key_field="id"
-							value_field="title"
-							showon="data_source:com_content.article[AND]article_img_intro_full:image_from_field"
-					/>
-					<field type="note" name="com_content_article_article_baloon_image_from_field_field_id_desc"
-						   label="MOD_WTYANDEXMAPITEMS_COM_CONTENT_ARTICLE_ARTICLE_BALOON_IMAGE_FROM_FIELD_FIELD_ID_LABEL"
-						   description="MOD_WTYANDEXMAPITEMS_COM_CONTENT_ARTICLE_ARTICLE_BALOON_IMAGE_FROM_FIELD_FIELD_ID_DESC"
-						   class="alert alert-info"
-						   showon="data_source:com_content.article[AND]article_img_intro_full:image_from_field"/>
-
-					<field
-							name="show_article_readmore"
-							type="radio"
-							layout="joomla.form.field.radio.switcher"
-							label="MOD_WTYANDEXMAPITEMS_SHOW_ARTICLE_READMORE"
-							default="1"
-							filter="integer"
-							showon="data_source:com_content.article"
-					>
-						<option value="0">JHIDE</option>
-						<option value="1">JSHOW</option>
-					</field>
-
-					<field
-							name="article_count"
-							type="number"
-							label="MOD_WTYANDEXMAPITEMS_ARTICLE_COUNT"
-							description="MOD_WTYANDEXMAPITEMS_ARTICLE_COUNT_DESC"
-							default="5"
-							filter="integer"
-							min="0"
-							validate="number"
-							showon="data_source:com_content.article"
-					/>
-				</fieldset>
-				<fieldset name="com_content_params_articles_2" label="MOD_WTYANDEXMAPITEMS_COM_CONTENT_PARAMS_ARTICLES_2_FIELDSET_LABEL">
-					<field
-							name="article_catid"
-							type="category"
-							label="JCATEGORY"
-							extension="com_content"
-							multiple="true"
-							filter="intarray"
-							class="multipleCategories"
-							layout="joomla.form.field.list-fancy-select"
-							showon="data_source:com_content.article"
-					/>
-
-					<field
-							name="article_tag"
-							type="tag"
-							label="JTAG"
-							mode="nested"
-							multiple="true"
-							filter="intarray"
-							class="multipleTags"
-							showon="data_source:com_content.article"
-					/>
-
-
-
-					<field
-							name="article_triggerevents"
-							type="radio"
-							label="MOD_WTYANDEXMAPITEMS_ARTICLE_TRIGGEREVENTS"
-							layout="joomla.form.field.radio.switcher"
-							default="1"
-							filter="integer"
-							showon="data_source:com_content.article"
+							class="btn-group btn-group-yesno"
 					>
 						<option value="0">JNO</option>
 						<option value="1">JYES</option>
 					</field>
-
-
+					<field
+							name="category_marker_view"
+							type="radio"
+							label="MOD_WTYANDEXMAPITEMS_CATEGORY_MARKER_VIEW"
+							default="default"
+							class="btn-group"
+							showon="is_default_marker:0"
+					>
+						<option value="default">MOD_WTYANDEXMAPITEMS_DEFAULT</option>
+						<option value="media">MOD_WTYANDEXMAPITEMS_VIEW_MEDIA</option>
+						<option value="layout">MOD_WTYANDEXMAPITEMS_VIEW_LAYOUT</option>
+					</field>
+					<field
+							name="category_marker_view_media_field_id"
+							type="sql"
+							label="MOD_WTYANDEXMAPITEMS_VIEW_MEDIA_FIELD"
+							default=""
+							query="SELECT id, title FROM #__fields WHERE state = 1 AND type = 'media' AND context = 'com_content.categories'"
+							key_field="id"
+							value_field="title"
+							showon="is_default_marker:0[AND]category_marker_view:media"
+					/>
+					<field
+							name="category_marker_view_layout_field_id"
+							type="sql"
+							label="MOD_WTYANDEXMAPITEMS_VIEW_LAYOUT_FIELD"
+							default=""
+							query="SELECT id, title FROM #__fields WHERE state = 1 AND type = 'text' AND context = 'com_content.categories'"
+							key_field="id"
+							value_field="title"
+							showon="is_default_marker:0[AND]category_marker_view:layout"
+					/>
+					<field
+							name="article_marker_view"
+							type="radio"
+							label="MOD_WTYANDEXMAPITEMS_ARTICLE_MARKER_VIEW"
+							default="default"
+							class="btn-group"
+							showon="is_default_marker:0"
+					>
+						<option value="default">MOD_WTYANDEXMAPITEMS_DEFAULT</option>
+						<option value="media">MOD_WTYANDEXMAPITEMS_VIEW_MEDIA</option>
+						<option value="layout">MOD_WTYANDEXMAPITEMS_VIEW_LAYOUT</option>
+					</field>
+					<field
+							name="article_marker_view_media_from"
+							type="list"
+							label="MOD_WTYANDEXMAPITEMS_VIEW_MEDIA_FROM"
+							default="intro"
+							showon="is_default_marker:0[AND]article_marker_view:media"
+					>
+						<option value="intro">MOD_WTYANDEXMAPITEMS_VIEW_MEDIA_FROM_INTRO</option>
+						<option value="fulltext">MOD_WTYANDEXMAPITEMS_VIEW_MEDIA_FROM_FULLTEXT</option>
+						<option value="field">MOD_WTYANDEXMAPITEMS_VIEW_MEDIA_FROM_FIELD</option>
+					</field>
+					<field
+							name="article_marker_view_media_field_id"
+							type="sql"
+							label="MOD_WTYANDEXMAPITEMS_VIEW_MEDIA_FIELD"
+							default=""
+							query="SELECT id, title FROM #__fields WHERE state = 1 AND type = 'media' AND context = 'com_content.article'"
+							key_field="id"
+							value_field="title"
+							showon="is_default_marker:0[AND]article_marker_view:media[AND]article_marker_view_media_from:field"
+					/>
+					<field
+							name="article_marker_view_layout_field_id"
+							type="sql"
+							label="MOD_WTYANDEXMAPITEMS_VIEW_LAYOUT_FIELD"
+							default=""
+							query="SELECT id, title FROM #__fields WHERE state = 1 AND type = 'text' AND context = 'com_content.article'"
+							key_field="id"
+							value_field="title"
+							showon="is_default_marker:0[AND]article_marker_view:layout"
+					/>
+				</fieldset>
+				<fieldset name="display_params_popup"
+						  label="MOD_WTYANDEXMAPITEMS_DISPLAY_PARAMS_POPUP"
+						  description="MOD_WTYANDEXMAPITEMS_DISPLAY_PARAMS_POPUP_DESC">
+					<field
+							name="use_popup"
+							type="radio"
+							label="MOD_WTYANDEXMAPITEMS_USE_POPUP"
+							default="default"
+							class="btn-group"
+					>
+						<option value="none">JNO</option>
+						<option value="default">MOD_WTYANDEXMAPITEMS_DEFAULT</option>
+						<option value="custom">MOD_WTYANDEXMAPITEMS_USE_POPUP_CUSTOM</option>
+					</field>
+					<field
+							name="popup_type"
+							type="radio"
+							label="MOD_WTYANDEXMAPITEMS_POPUP_TYPE"
+							default="default"
+							class="btn-group"
+							showon="use_popup:custom"
+					>
+						<option value="default">MOD_WTYANDEXMAPITEMS_DEFAULT</option>
+						<option value="modal">MOD_WTYANDEXMAPITEMS_POPUP_MODAL</option>
+					</field>
+					<field
+							name="popup_framework"
+							type="list"
+							label="MOD_WTYANDEXMAPITEMS_POPUP_FRAMEWORK"
+							default="bootstrap"
+							showon="use_popup:custom[AND]popup_type:modal"
+					>
+						<option value="bootstrap">MOD_WTYANDEXMAPITEMS_POPUP_FRAMEWORK_BOOTSTRAP</option>
+						<option value="uikit">MOD_WTYANDEXMAPITEMS_POPUP_FRAMEWORK_UIKIT</option>
+					</field>
+					<field
+							name="category_popup_view"
+							type="radio"
+							label="MOD_WTYANDEXMAPITEMS_CATEGORY_POPUP_VIEW"
+							default="default"
+							class="btn-group"
+							showon="use_popup:custom"
+					>
+						<option value="default">MOD_WTYANDEXMAPITEMS_DEFAULT</option>
+						<option value="layout">MOD_WTYANDEXMAPITEMS_VIEW_LAYOUT</option>
+					</field>
+					<field
+							name="category_popup_view_layout_field_id"
+							type="sql"
+							label="MOD_WTYANDEXMAPITEMS_VIEW_LAYOUT_FIELD"
+							default=""
+							query="SELECT id, title FROM #__fields WHERE state = 1 AND type = 'text' AND context = 'com_content.categories'"
+							key_field="id"
+							value_field="title"
+							showon="use_popup:custom[AND]category_popup_view:layout"
+					/>
+					<field
+							name="article_popup_view"
+							type="radio"
+							label="MOD_WTYANDEXMAPITEMS_ARTICLE_POPUP_VIEW"
+							default="default"
+							class="btn-group"
+							showon="use_popup:custom"
+					>
+						<option value="default">MOD_WTYANDEXMAPITEMS_DEFAULT</option>
+						<option value="layout">MOD_WTYANDEXMAPITEMS_VIEW_LAYOUT</option>
+					</field>
+					<field
+							name="article_popup_view_layout_field_id"
+							type="sql"
+							label="MOD_WTYANDEXMAPITEMS_VIEW_LAYOUT_FIELD"
+							default=""
+							query="SELECT id, title FROM #__fields WHERE state = 1 AND type = 'text' AND context = 'com_content.article'"
+							key_field="id"
+							value_field="title"
+							showon="use_popup:custom[AND]article_popup_view:layout"
+					/>
 				</fieldset>
 			</fieldset>
 			<fieldset name="yandex_map_params" label="MOD_WTYANDEXMAPITEMS_YANDEX_MAP_PARAMS_FIELDSET_LABEL">
-				<fieldset name="yandex_map_params_credentials" label="MOD_WTYANDEXMAPITEMS_YANDEX_MAP_PARAMS_CREDENTIALS_FIELDSET_LABEL">
-					<field type="text" name="yandex_map_api_key" label="MOD_WTYANDEXMAPITEMS_YANDEX_MAP_API_KEY"/>
-					<field type="radio"
-						   name="yandex_api_type"
-						   label="MOD_WTYANDEXMAPITEMS_YANDEX_API_TYPE"
-						   default="free" class="btn-group btn-group-yesno">
-						<option value="free">MOD_WTYANDEXMAPITEMS_YANDEX_API_TYPE_FREE</option>
-						<option value="paid">MOD_WTYANDEXMAPITEMS_YANDEX_API_TYPE_PAID</option>
-					</field>
-					<field type="note"
-						   name="yandex_api_type_desc"
-						   description="MOD_WTYANDEXMAPITEMS_YANDEX_API_TYPE_DESC"
-						   class="col-12 alert alert-info"/>
-				</fieldset>
 				<fieldset name="yandex_map_params_display" label="MOD_WTYANDEXMAPITEMS_YANDEX_MAP_PARAMS_DISPLAY_FIELDSET_LABEL">
 					<field type="text"
 						   name="map_center"
@@ -277,18 +370,13 @@
 						<option value="19">19</option>
 						<option value="20">20</option>
 						<option value="21">21</option>
-						<option value="22">22</option>
-						<option value="23">23</option>
-						<option value="24">24</option>
-						<option value="25">25</option>
 					</field>
 					<field type="list"
 						   name="map_type"
 						   label="MOD_WTYANDEXMAPITEMS_MAP_TYPE"
-						   default="satellite">
-						<option value="map">MOD_WTYANDEXMAPITEMS_MAP_TYPE_MAP</option>
+						   default="scheme">
+						<option value="scheme">MOD_WTYANDEXMAPITEMS_MAP_TYPE_MAP</option>
 						<option value="satellite">MOD_WTYANDEXMAPITEMS_MAP_TYPE_SATELLITE</option>
-						<option value="hybrid">MOD_WTYANDEXMAPITEMS_MAP_TYPE_HYBRID</option>
 					</field>
 					<field type="text"
 						   name="map_width"
@@ -299,9 +387,8 @@
 						   name="map_height"
 						   label="MOD_WTYANDEXMAPITEMS_MAP_HEIGHT"
 						   description="MOD_WTYANDEXMAPITEMS_MAP_HEIGHT_DESC"
-						   default="100%"/>
+						   default="350px"/>
 				</fieldset>
-
 			</fieldset>
 			<fieldset name="advanced">
 				<field
@@ -311,7 +398,6 @@
 						class="form-select"
 						validate="moduleLayout"
 				/>
-
 				<field
 						name="moduleclass_sfx"
 						type="textarea"
@@ -319,7 +405,6 @@
 						rows="3"
 						validate="CssIdentifier"
 				/>
-
 				<field
 						name="cache"
 						type="list"
@@ -331,7 +416,6 @@
 					<option value="1">JGLOBAL_USE_GLOBAL</option>
 					<option value="0">COM_MODULES_FIELD_VALUE_NOCACHING</option>
 				</field>
-
 				<field
 						name="cache_time"
 						type="number"
@@ -339,7 +423,6 @@
 						default="900"
 						filter="integer"
 				/>
-
 				<field
 						name="cachemode"
 						type="hidden"
@@ -351,6 +434,7 @@
 		</fields>
 	</config>
 	<updateservers>
-			<server type="extension" name="WebTolk - WT Yandex map items">https://web-tolk.ru/component/swjprojects/jupdate.html?element=mod_wtyandexmapitems</server>
+		<server type="extension" priority="1" name="WT Yandex map items updates">https://web-tolk.ru/component/swjprojects/jupdate?element=mod_wtyandexmapitems</server>
 	</updateservers>
+	<changelogurl>https://web-tolk.ru/jchangelog?element=mod_wtyandexmapitems</changelogurl>
 </extension>

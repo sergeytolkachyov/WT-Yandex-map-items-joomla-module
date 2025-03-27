@@ -1,264 +1,410 @@
 <?php
-// No direct access to this file
-defined('_JEXEC') or die('Restricted access');
+/**
+ * @package       WT Yandex map items
+ * @version    2.0.0
+ * @author     Sergey Tolkachyov
+ * @copyright  Copyright (c) 2022 - 2025 Sergey Tolkachyov. All rights reserved.
+ * @license    GNU/GPL license: https://www.gnu.org/copyleft/gpl.html
+ * @link       https://web-tolk.ru
+ * @since      1.0.0
+ */
+
+use Joomla\CMS\Application\AdministratorApplication;
+use Joomla\CMS\Extension\ExtensionHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Installer\Installer;
-use Joomla\CMS\Installer\InstallerHelper;
+use Joomla\CMS\Installer\InstallerAdapter;
+use Joomla\CMS\Installer\InstallerScriptInterface;
 use Joomla\CMS\Language\Text;
-use Joomla\CMS\Plugin\PluginHelper;
+use Joomla\CMS\Log\Log;
+use Joomla\CMS\Version;
+use Joomla\DI\Container;
+use Joomla\DI\ServiceProviderInterface;
+use Joomla\Database\DatabaseDriver;
+use Joomla\Filesystem\File;
+use Joomla\Filesystem\Folder;
+use Joomla\Filesystem\Path;
 
-/**
- * Script file of HelloWorld component.
- *
- * The name of this class is dependent on the component being installed.
- * The class name should have the component's name, directly followed by
- * the text InstallerScript (ex:. com_helloWorldInstallerScript).
- *
- * This class will be called by Joomla!'s installer, if specified in your component's
- * manifest file, and is used for custom automation actions in its installation process.
- *
- * In order to use this automation script, you should reference it in your component's
- * manifest file as follows:
- * <scriptfile>script.php</scriptfile>
- *
- * @package     Joomla.Administrator
- * @subpackage  com_helloworld
- *
- * @copyright   Copyright (C) 2005 - 2018 Open Source Matters, Inc. All rights reserved.
- * @license     GNU General Public License version 2 or later; see LICENSE.txt
- */
-class mod_wtyandexmapitemsInstallerScript
-{
-    /**
-     * This method is called after a component is installed.
-     *
-     * @param  \stdClass $parent - Parent object calling this method.
-     *
-     * @return void
-     */
-    public function install($parent)
+// No direct access to this file
+defined('_JEXEC') or die();
+
+return new class () implements ServiceProviderInterface {
+
+    public function register(Container $container): void
     {
+        $container->set(InstallerScriptInterface::class, new class ($container->get(AdministratorApplication::class)) implements InstallerScriptInterface {
+            /**
+             * The application object
+             *
+             * @var  AdministratorApplication
+             *
+             * @since  1.0.0
+             */
+            protected AdministratorApplication $app;
 
-    }
+            /**
+             * The Database object.
+             *
+             * @var  DatabaseDriver
+             *
+             * @since  1.0.0
+             */
+            protected DatabaseDriver $db;
 
-    /**
-     * This method is called after a component is uninstalled.
-     *
-     * @param  \stdClass $parent - Parent object calling this method.
-     *
-     * @return void
-     */
-    public function uninstall($parent) 
-    {
+            /**
+             * Minimum Joomla version required to install the extension.
+             *
+             * @var  string
+             *
+             * @since  1.0.0
+             */
+            protected string $minimumJoomla = '4.2';
 
-		
-    }
+            /**
+             * Minimum PHP version required to install the extension.
+             *
+             * @var  string
+             *
+             * @since  1.0.0
+             */
+            protected string $minimumPhp = '8.0';
 
-    /**
-     * This method is called after a component is updated.
-     *
-     * @param  \stdClass $parent - Parent object calling object.
-     *
-     * @return void
-     */
-    public function update($parent) 
-    {
+            /**
+             * @var  array $providersInstallationMessageQueue
+             *
+             * @since  1.0.0
+             */
+            protected $providersInstallationMessageQueue = [];
 
-    }
+            /**
+             * Constructor.
+             *
+             * @param  AdministratorApplication  $app  The application object.
+             *
+             * @since  1.0.0
+             */
+            public function __construct(AdministratorApplication $app)
+            {
+                $this->app = $app;
+                $this->db = Factory::getContainer()->get('DatabaseDriver');
+            }
 
-    /**
-     * Runs just before any installation action is performed on the component.
-     * Verifications and pre-requisites should run in this function.
-     *
-     * @param  string    $type   - Type of PreFlight action. Possible values are:
-     *                           - * install
-     *                           - * update
-     *                           - * discover_install
-     * @param  \stdClass $parent - Parent object calling object.
-     *
-     * @return void
-     */
-    public function preflight($type, $parent) 
-    {
+            /**
+             * Function called after the extension is installed.
+             *
+             * @param  InstallerAdapter  $adapter  The adapter calling this method
+             *
+             * @return  boolean  True on success
+             *
+             * @since  1.0.0
+             */
+            public function install(InstallerAdapter $adapter): bool
+            {
+                return true;
+            }
 
-    }
-	/**
-	 * @param $parent
-	 *
-	 * @return bool
-	 * @throws Exception
-	 *
-	 *
-	 * @since 1.0.0
-	 */
-	protected function installDependencies($parent,$url)
-	{
-		// Load installer plugins for assistance if required:
-		PluginHelper::importPlugin('installer');
+            /**
+             * Function called after the extension is updated.
+             *
+             * @param  InstallerAdapter  $adapter  The adapter calling this method
+             *
+             * @return  boolean  True on success
+             *
+             * @since  1.0.0
+             */
+            public function update(InstallerAdapter $adapter): bool
+            {
 
-		$app = Factory::getApplication();
+                return true;
+            }
 
-		$package = null;
+            /**
+             * Function called after the extension is uninstalled.
+             *
+             * @param  InstallerAdapter  $adapter  The adapter calling this method
+             *
+             * @return  boolean  True on success
+             *
+             * @since  1.0.0
+             */
+            public function uninstall(InstallerAdapter $adapter): bool
+            {
+	            $element = strtoupper($adapter->getElement());
 
-		// This event allows an input pre-treatment, a custom pre-packing or custom installation.
-		// (e.g. from a JSON description).
-		$results = $app->triggerEvent('onInstallerBeforeInstallation', array($this, &$package));
+	            $header = Text::_($element . '_AFTER_UPDATE') . ' <br/>' . Text::_($element);
+	            $this->renderMessage(header: $header, message: '', element: $adapter->getElement(), smile:'&#128546');
+                // Remove layouts
+                $this->removeLayouts($adapter->getParent()->getManifest()->layouts);
+                return true;
+            }
 
-		if (in_array(true, $results, true))
-		{
-			return true;
-		}
+            /**
+             * Function called before extension installation/update/removal procedure commences.
+             *
+             * @param  string  $type  The type of change (install or discover_install, update, uninstall)
+             * @param  InstallerAdapter  $adapter  The adapter calling this method
+             *
+             * @return  boolean  True on success
+             *
+             * @since  1.0.0
+             */
+            public function preflight(string $type, InstallerAdapter $adapter): bool
+            {
+                // Check compatible
+                if (!$this->checkCompatible($adapter->getElement()))
+                {
+                    return false;
+                }
 
-		if (in_array(false, $results, true))
-		{
-			return false;
-		}
+	            $module = ExtensionHelper::getExtensionRecord('mod_wtyandexmapitems','module',0);
+	            file_put_contents(JPATH_SITE.'/'.__FUNCTION__.'.txt', print_r($module, true), FILE_APPEND);
+	            if($module)
+	            {
+		            $manifest_cache = new Joomla\Registry\Registry($module->manifest_cache);
+		            file_put_contents(JPATH_SITE.'/'.__FUNCTION__.'.txt', print_r($module, true), FILE_APPEND);
+		            if($manifest_cache->get('version') == '1.0.0')
+		            {
+			            $element = strtoupper($adapter->getElement());
 
+			            $header = Text::sprintf('MOD_WTYANDEXMAPITEMS_UPDATE_FROM_1_0_0_HEADER', Text::_($element));
+			            $message = Text::_('MOD_WTYANDEXMAPITEMS_UPDATE_FROM_1_0_0_MESSAGE');
+			            $message .= Text::_($element . '_WHATS_NEW');
+			            $this->renderMessage(header: $header, message: $message, element: $adapter->getElement(), smile:'&#9940', message_type: 'error');
+			            return false;
+		            }
+	            }
 
+                return true;
+            }
 
-		// Download the package at the URL given.
-		$p_file = InstallerHelper::downloadPackage($url);
+            /**
+             * Function called after extension installation/update/removal procedure commences.
+             *
+             * @param  string  $type  The type of change (install or discover_install, update, uninstall)
+             * @param  InstallerAdapter  $adapter  The adapter calling this method
+             *
+             * @return  boolean  True on success
+             *
+             * @since  1.0.0
+             */
+            public function postflight(string $type, InstallerAdapter $adapter): bool
+            {
+                if ($type != 'uninstall')
+                {
+                    $this->parseLayouts($adapter->getParent()->getManifest()->layouts, $adapter->getParent());
+                }
 
-		// Was the package downloaded?
-		if (!$p_file)
-		{
-			$app->enqueueMessage(Text::_('COM_INSTALLER_MSG_INSTALL_INVALID_URL'), 'error');
+                // Check key params
 
-			return false;
-		}
+                $smile = '';
+                if ($type != 'uninstall')
+                {
+                    $smiles = ['&#9786;', '&#128512;', '&#128521;', '&#128525;', '&#128526;', '&#128522;', '&#128591;'];
+                    $smile_key = array_rand($smiles, 1);
+                    $smile = $smiles[$smile_key];
+                }
 
-		$config   = Factory::getConfig();
-		$tmp_dest = $config->get('tmp_path');
+                $element = strtoupper($adapter->getElement());
 
-		// Unpack the downloaded package file.
-		$package = InstallerHelper::unpack($tmp_dest . '/' . $p_file, true);
+                $type = strtoupper($type);
+                $header = Text::_($element . '_AFTER_' . $type) . ' <br/>' . Text::_($element);
+	            $message = Text::_($element . '_DESC');
+	            $message .= Text::_($element . '_WHATS_NEW');
 
-		// This event allows a custom installation of the package or a customization of the package:
-		$results = $app->triggerEvent('onInstallerBeforeInstaller', array($this, &$package));
+				$this->renderMessage(header: $header, message: $message, element: $adapter->getElement(), smile: $smile);
 
-		if (in_array(true, $results, true))
-		{
-			return true;
-		}
+                return true;
+            }
 
-		if (in_array(false, $results, true))
-		{
-			InstallerHelper::cleanupInstall($package['packagefile'], $package['extractdir']);
+            /**
+             * Method to parse through a layout element of the installation manifest and take appropriate action.
+             *
+             * @param  SimpleXMLElement  $element  The XML node to process.
+             * @param  InstallerAdapter  $installer  Installer calling object.
+             *
+             * @return  boolean  True on success.
+             *
+             * @since 2.0.0
+             */
+            private function parseLayouts(SimpleXMLElement $element, Installer $installer): bool
+            {
+                if (!$element || !count($element->children()))
+                {
+                    return false;
+                }
 
-			return false;
-		}
+                // Get destination
+                $folder = ((string) $element->attributes()->destination) ? '/' . $element->attributes()->destination : null;
+                $destination = Path::clean(JPATH_ROOT . '/layouts' . $folder);
 
-		// Get an installer instance.
-		$installer = new Installer();
+                // Get source
+                $folder = (string) $element->attributes()->folder;
+                $source = ($folder && file_exists($installer->getPath('source') . '/' . $folder)) ?
+                    $installer->getPath('source') . '/' . $folder : $installer->getPath('source');
 
-		/*
-		 * Check for a Joomla core package.
-		 * To do this we need to set the source path to find the manifest (the same first step as JInstaller::install())
-		 *
-		 * This must be done before the unpacked check because JInstallerHelper::detectType() returns a boolean false since the manifest
-		 * can't be found in the expected location.
-		 */
-		if (is_array($package) && isset($package['dir']) && is_dir($package['dir']))
-		{
-			$installer->setPath('source', $package['dir']);
+                // Prepare files
+                $files = array();
+                foreach ($element->children() as $file)
+                {
+                    $path['src'] = Path::clean($source . '/' . $file);
+                    $path['dest'] = Path::clean($destination . '/' . $file);
 
-			if (!$installer->findManifest())
+                    // Is this path a file or folder?
+                    $path['type'] = $file->getName() === 'folder' ? 'folder' : 'file';
+                    if (basename($path['dest']) !== $path['dest'])
+                    {
+                        $newdir = dirname($path['dest']);
+                        if (!Folder::create($newdir))
+                        {
+                            Log::add(Text::sprintf('JLIB_INSTALLER_ABORT_CREATE_DIRECTORY', $installer->getManifest()->name, $newdir), Log::WARNING, 'jerror');
+
+                            return false;
+                        }
+                    }
+
+                    $files[] = $path;
+                }
+
+                return $installer->copyFiles($files);
+            }
+
+            /**
+             * Method to parse through a layouts element of the installation manifest and remove the files that were installed.
+             *
+             * @param  SimpleXMLElement  $element  The XML node to process.
+             *
+             * @return  boolean  True on success.
+             *
+             * @since  2.0.0
+             */
+            private function removeLayouts(SimpleXMLElement $element): bool
+            {
+                if (!$element || !count($element->children()))
+                {
+                    return false;
+                }
+
+                // Get the array of file nodes to process
+                $files = $element->children();
+
+                // Get source
+                $folder = ((string) $element->attributes()->destination) ? '/' . $element->attributes()->destination : null;
+                $source = Path::clean(JPATH_ROOT . '/layouts' . $folder);
+
+                // Process each file in the $files array (children of $tagName).
+                foreach ($files as $file)
+                {
+                    $path = Path::clean($source . '/' . $file);
+
+                    // Actually delete the files/folders
+                    if (is_dir($path))
+                    {
+                        $val = Folder::delete($path);
+                    }
+                    else
+                    {
+                        $val = File::delete($path);
+                    }
+
+                    if ($val === false)
+                    {
+                        Log::add('Failed to delete ' . $path, Log::WARNING, 'jerror');
+
+                        return false;
+                    }
+                }
+
+                if (!empty($folder))
+                {
+                    Folder::delete($source);
+                }
+
+                return true;
+            }
+
+            /**
+             * Method to check compatible.
+             *
+             * @return  boolean  True on success, False on failure.
+             *
+             * @throws  Exception
+             *
+             * @since  2.0.0
+             */
+            protected function checkCompatible(string $element): bool
+            {
+                $element = strtoupper($element);
+                // Check joomla version
+                if (!(new Version)->isCompatible($this->minimumJoomla))
+                {
+                    $this->app->enqueueMessage(
+                        Text::sprintf($element . '_ERROR_COMPATIBLE_JOOMLA', $this->minimumJoomla),
+                        'error'
+                    );
+
+                    return false;
+                }
+
+                // Check PHP
+                if (!(version_compare(PHP_VERSION, $this->minimumPhp) >= 0))
+                {
+                    $this->app->enqueueMessage(
+                        Text::sprintf($element . '_ERROR_COMPATIBLE_PHP', $this->minimumPhp),
+                        'error'
+                    );
+
+                    return false;
+                }
+
+                return true;
+            }
+
+	        /**
+	         *
+	         * Render message for install/update/remove processes
+	         *
+	         * @param   string  $header   Message header
+	         * @param   string  $message  message body
+	         * @param   string  $element  extension element
+	         * @param   string  $smile    smile for more emotionality
+	         *
+	         *
+	         * @since 2.0.0
+	         */
+	        private function renderMessage(string $header, string $message, string $element, string $smile = '', string $message_type = 'info'): void
 			{
-				InstallerHelper::cleanupInstall($package['packagefile'], $package['extractdir']);
-				$app->enqueueMessage(Text::sprintf('COM_INSTALLER_INSTALL_ERROR', '.'), 'warning');
+				if(!empty($smile))
+				{
+					$smile .= $smile.' ';
+				}
 
-				return false;
+				$element = strtoupper($element);
+
+				$html = '
+				<div class="row m-0">
+				<div class="col-12 col-md-8 p-0 pe-2">
+				<h2>' . $smile . $header .'</h2>';
+
+				$html .= $message;
+
+				$html .= '</div>
+				<div class="col-12 col-md-4 p-0 d-flex flex-column justify-content-start">
+				<img width="180" src="https://web-tolk.ru/web_tolk_logo_wide.png">
+				<p>Joomla Extensions</p>
+				<p class="btn-group">
+					<a class="btn btn-sm btn-outline-primary" href="https://web-tolk.ru" target="_blank"> https://web-tolk.ru</a>
+					<a class="btn btn-sm btn-outline-primary" href="mailto:info@web-tolk.ru"><i class="icon-envelope"></i> info@web-tolk.ru</a>
+				</p>
+				<div class="btn-group-vertical mb-3 web-tolk-btn-links" role="group" aria-label="Joomla community links">
+					<a class="btn btn-danger text-white w-100" href="https://t.me/joomlaru" target="_blank">' . Text::_($element . '_JOOMLARU_TELEGRAM_CHAT') . '</a>
+					<a class="btn btn-primary text-white w-100" href="https://t.me/webtolkru" target="_blank">' . Text::_($element . '_WEBTOLK_TELEGRAM_CHANNEL') . '</a>
+				</div>
+				' . Text::_($element . "_MAYBE_INTERESTING") . '
+				</div>
+
+				';
+				$this->app->enqueueMessage($html, $message_type);
 			}
-		}
-
-		// Was the package unpacked?
-		if (!$package || !$package['type'])
-		{
-			InstallerHelper::cleanupInstall($package['packagefile'], $package['extractdir']);
-			$app->enqueueMessage(Text::_('COM_INSTALLER_UNABLE_TO_FIND_INSTALL_PACKAGE'), 'error');
-
-			return false;
-		}
-
-		// Install the package.
-		if (!$installer->install($package['dir']))
-		{
-			// There was an error installing the package.
-			$msg     = Text::sprintf('COM_INSTALLER_INSTALL_ERROR',
-				Text::_('COM_INSTALLER_TYPE_TYPE_' . strtoupper($package['type'])));
-			$result  = false;
-			$msgType = 'error';
-		}
-		else
-		{
-			// Package installed successfully.
-			$msg     = Text::sprintf('COM_INSTALLER_INSTALL_SUCCESS',
-				Text::_('COM_INSTALLER_TYPE_TYPE_' . strtoupper($package['type'])));
-			$result  = true;
-			$msgType = 'message';
-		}
-
-		// This event allows a custom a post-flight:
-		$app->triggerEvent('onInstallerAfterInstaller', array($parent, &$package, $installer, &$result, &$msg));
-
-		$app->enqueueMessage($msg, $msgType);
-
-		// Cleanup the install files.
-		if (!is_file($package['packagefile']))
-		{
-			$package['packagefile'] = $config->get('tmp_path') . '/' . $package['packagefile'];
-		}
-
-		InstallerHelper::cleanupInstall($package['packagefile'], $package['extractdir']);
-
-		return $result;
-	}
-
-
-	/**
-     * Runs right after any installation action is performed on the component.
-     *
-     * @param  string    $type   - Type of PostFlight action. Possible values are:
-     *                           - * install
-     *                           - * update
-     *                           - * discover_install
-     * @param  \stdClass $installer - Parent object calling object.
-     *
-     * @return void
-     */
-    function postflight($type, $installer) 
-    {
-		 $smile = '';
-	    if($type != 'uninstall')
-	    {
-		    $smiles    = ['&#9786;', '&#128512;', '&#128521;', '&#128525;', '&#128526;', '&#128522;', '&#128591;'];
-		    $smile_key = array_rand($smiles, 1);
-		    $smile     = $smiles[$smile_key];
-	    }
-		
-		$element = strtoupper($installer->getElement());
-
-		echo "
-		<div class='row bg-white m-3 p-3 shadow-sm border'>
-		<div class='col-8'>
-		<h2>".$smile." ".Text::_($element."_AFTER_".$type)." <br/>".Text::_($element)."</h2>
-		".Text::_($element."_DESC");
-		
-		echo Text::_($element."_WHATS_NEW");
-
-		echo "</div>
-		<div class='col-4 d-flex flex-column justify-content-center'>
-		<img width='200px' src='https://web-tolk.ru/web_tolk_logo_wide.png'>
-		<p>Joomla Extensions</p>
-		<p class='btn-group'>
-			<a class='btn btn-sm btn-outline-primary' href='https://web-tolk.ru' target='_blank'>https://web-tolk.ru</a>
-			<a class='btn btn-sm btn-outline-primary' href='mailto:info@web-tolk.ru'><i class='icon-envelope'></i> info@web-tolk.ru</a>
-		</p>
-		<p><a class='btn btn-info' href='https://t.me/joomlaru' target='_blank'>Joomla Russian Community in Telegram</a></p>
-		".Text::_($element."_MAYBE_INTERESTING")."
-		</div>
-
-		";	
-	
+        });
     }
-}
+};
