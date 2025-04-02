@@ -1,6 +1,6 @@
 /**
- * @package       WT Yandex map items
- * @version    2.0.0
+ * @package    WT Yandex map items
+ * @version    2.0.1
  * @author     Sergey Tolkachyov
  * @copyright  Copyright (c) 2022 - 2025 Sergey Tolkachyov. All rights reserved.
  * @license    GNU/GPL license: https://www.gnu.org/copyleft/gpl.html
@@ -108,8 +108,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 {
                     this.popupContainer = document.querySelector(modalId + ' .modal-body');
                     this.popupHeader = document.querySelector(modalId + ' .modal-title');
-                    this._marker.element.setAttribute('data-bs-toggle', 'modal');
-                    this._marker.element.setAttribute('data-bs-target', modalId);
+                    this._marker.element.addEventListener('click', () => {
+                        const modalEl = document.querySelector(modalId);
+                        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                        modal.show();
+                    });
                 }
                 else if (this._props.popup_framework === 'uikit')
                 {

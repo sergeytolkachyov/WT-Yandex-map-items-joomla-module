@@ -1,7 +1,7 @@
 <?php
 /**
- * @package       WT Yandex map items
- * @version    2.0.0
+ * @package    WT Yandex map items
+ * @version    2.0.1
  * @author     Sergey Tolkachyov
  * @copyright  Copyright (c) 2022 - 2025 Sergey Tolkachyov. All rights reserved.
  * @license    GNU/GPL license: https://www.gnu.org/copyleft/gpl.html
@@ -26,7 +26,7 @@ use Joomla\Filesystem\Folder;
 use Joomla\Filesystem\Path;
 
 // No direct access to this file
-defined('_JEXEC') or die();
+defined('_JEXEC') or die;
 
 return new class () implements ServiceProviderInterface {
 
@@ -36,52 +36,52 @@ return new class () implements ServiceProviderInterface {
             /**
              * The application object
              *
-             * @var  AdministratorApplication
+             * @var AdministratorApplication
              *
-             * @since  1.0.0
+             * @since 2.0.0
              */
             protected AdministratorApplication $app;
 
             /**
-             * The Database object.
+             * The database object
              *
-             * @var  DatabaseDriver
+             * @var DatabaseDriver
              *
-             * @since  1.0.0
+             * @since 2.0.0
              */
             protected DatabaseDriver $db;
 
             /**
-             * Minimum Joomla version required to install the extension.
+             * Minimum Joomla version required to install the extension
              *
-             * @var  string
+             * @var string
              *
-             * @since  1.0.0
+             * @since 2.0.0
              */
             protected string $minimumJoomla = '4.2';
 
             /**
-             * Minimum PHP version required to install the extension.
+             * Minimum PHP version required to install the extension
              *
-             * @var  string
+             * @var string
              *
-             * @since  1.0.0
+             * @since 2.0.0
              */
             protected string $minimumPhp = '8.0';
 
             /**
-             * @var  array $providersInstallationMessageQueue
+             * @var array $providersInstallationMessageQueue
              *
-             * @since  1.0.0
+             * @since 2.0.0
              */
             protected $providersInstallationMessageQueue = [];
 
             /**
-             * Constructor.
+             * Constructor
              *
-             * @param  AdministratorApplication  $app  The application object.
+             * @param AdministratorApplication $app The application object
              *
-             * @since  1.0.0
+             * @since 1.0.0
              */
             public function __construct(AdministratorApplication $app)
             {
@@ -90,13 +90,13 @@ return new class () implements ServiceProviderInterface {
             }
 
             /**
-             * Function called after the extension is installed.
+             * Function called after the extension is installed
              *
-             * @param  InstallerAdapter  $adapter  The adapter calling this method
+             * @param InstallerAdapter $adapter The adapter calling this method
              *
-             * @return  boolean  True on success
+             * @return boolean True on success
              *
-             * @since  1.0.0
+             * @since 1.0.0
              */
             public function install(InstallerAdapter $adapter): bool
             {
@@ -104,28 +104,27 @@ return new class () implements ServiceProviderInterface {
             }
 
             /**
-             * Function called after the extension is updated.
+             * Function called after the extension is updated
              *
-             * @param  InstallerAdapter  $adapter  The adapter calling this method
+             * @param InstallerAdapter $adapter The adapter calling this method
              *
-             * @return  boolean  True on success
+             * @return boolean True on success
              *
-             * @since  1.0.0
+             * @since 1.0.0
              */
             public function update(InstallerAdapter $adapter): bool
             {
-
                 return true;
             }
 
             /**
-             * Function called after the extension is uninstalled.
+             * Function called after the extension is uninstalled
              *
-             * @param  InstallerAdapter  $adapter  The adapter calling this method
+             * @param InstallerAdapter  $adapter The adapter calling this method
              *
-             * @return  boolean  True on success
+             * @return boolean True on success
              *
-             * @since  1.0.0
+             * @since 1.0.0
              */
             public function uninstall(InstallerAdapter $adapter): bool
             {
@@ -133,20 +132,22 @@ return new class () implements ServiceProviderInterface {
 
 	            $header = Text::_($element . '_AFTER_UPDATE') . ' <br/>' . Text::_($element);
 	            $this->renderMessage(header: $header, message: '', element: $adapter->getElement(), smile:'&#128546');
+
                 // Remove layouts
                 $this->removeLayouts($adapter->getParent()->getManifest()->layouts);
+                
                 return true;
             }
 
             /**
-             * Function called before extension installation/update/removal procedure commences.
+             * Function called before extension installation/update/removal procedure commences
              *
-             * @param  string  $type  The type of change (install or discover_install, update, uninstall)
-             * @param  InstallerAdapter  $adapter  The adapter calling this method
+             * @param string $type The type of change (install or discover_install, update, uninstall)
+             * @param InstallerAdapter $adapter The adapter calling this method
              *
-             * @return  boolean  True on success
+             * @return boolean True on success
              *
-             * @since  1.0.0
+             * @since 1.0.0
              */
             public function preflight(string $type, InstallerAdapter $adapter): bool
             {
@@ -156,13 +157,13 @@ return new class () implements ServiceProviderInterface {
                     return false;
                 }
 
-	            $module = ExtensionHelper::getExtensionRecord('mod_wtyandexmapitems','module',0);
-	            file_put_contents(JPATH_SITE.'/'.__FUNCTION__.'.txt', print_r($module, true), FILE_APPEND);
-	            if($module)
+	            $module = ExtensionHelper::getExtensionRecord('mod_wtyandexmapitems', 'module', 0);
+
+	            if ($module)
 	            {
 		            $manifest_cache = new Joomla\Registry\Registry($module->manifest_cache);
-		            file_put_contents(JPATH_SITE.'/'.__FUNCTION__.'.txt', print_r($module, true), FILE_APPEND);
-		            if($manifest_cache->get('version') == '1.0.0')
+
+		            if ($manifest_cache->get('version') == '1.0.0')
 		            {
 			            $element = strtoupper($adapter->getElement());
 
@@ -170,7 +171,8 @@ return new class () implements ServiceProviderInterface {
 			            $message = Text::_('MOD_WTYANDEXMAPITEMS_UPDATE_FROM_1_0_0_MESSAGE');
 			            $message .= Text::_($element . '_WHATS_NEW');
 			            $this->renderMessage(header: $header, message: $message, element: $adapter->getElement(), smile:'&#9940', message_type: 'error');
-			            return false;
+
+                        return false;
 		            }
 	            }
 
@@ -178,14 +180,14 @@ return new class () implements ServiceProviderInterface {
             }
 
             /**
-             * Function called after extension installation/update/removal procedure commences.
+             * Function called after extension installation/update/removal procedure commences
              *
-             * @param  string  $type  The type of change (install or discover_install, update, uninstall)
-             * @param  InstallerAdapter  $adapter  The adapter calling this method
+             * @param string $type The type of change (install or discover_install, update, uninstall)
+             * @param InstallerAdapter $adapter The adapter calling this method
              *
-             * @return  boolean  True on success
+             * @return boolean True on success
              *
-             * @since  1.0.0
+             * @since 1.0.0
              */
             public function postflight(string $type, InstallerAdapter $adapter): bool
             {
@@ -217,12 +219,12 @@ return new class () implements ServiceProviderInterface {
             }
 
             /**
-             * Method to parse through a layout element of the installation manifest and take appropriate action.
+             * Method to parse through a layout element of the installation manifest and take appropriate action
              *
-             * @param  SimpleXMLElement  $element  The XML node to process.
-             * @param  InstallerAdapter  $installer  Installer calling object.
+             * @param SimpleXMLElement $element The XML node to process
+             * @param Installer $installer Installer calling object
              *
-             * @return  boolean  True on success.
+             * @return boolean True on success
              *
              * @since 2.0.0
              */
@@ -243,7 +245,7 @@ return new class () implements ServiceProviderInterface {
                     $installer->getPath('source') . '/' . $folder : $installer->getPath('source');
 
                 // Prepare files
-                $files = array();
+                $files = [];
                 foreach ($element->children() as $file)
                 {
                     $path['src'] = Path::clean($source . '/' . $file);
@@ -269,13 +271,13 @@ return new class () implements ServiceProviderInterface {
             }
 
             /**
-             * Method to parse through a layouts element of the installation manifest and remove the files that were installed.
+             * Method to parse through a layouts element of the installation manifest and remove the files that were installed
              *
-             * @param  SimpleXMLElement  $element  The XML node to process.
+             * @param SimpleXMLElement $element The XML node to process
              *
-             * @return  boolean  True on success.
+             * @return boolean True on success
              *
-             * @since  2.0.0
+             * @since 2.0.0
              */
             private function removeLayouts(SimpleXMLElement $element): bool
             {
@@ -323,13 +325,13 @@ return new class () implements ServiceProviderInterface {
             }
 
             /**
-             * Method to check compatible.
+             * Method to check compatible
              *
-             * @return  boolean  True on success, False on failure.
+             * @return boolean True on success, False on failure
              *
-             * @throws  Exception
+             * @throws Exception
              *
-             * @since  2.0.0
+             * @since 2.0.0
              */
             protected function checkCompatible(string $element): bool
             {
@@ -337,10 +339,7 @@ return new class () implements ServiceProviderInterface {
                 // Check joomla version
                 if (!(new Version)->isCompatible($this->minimumJoomla))
                 {
-                    $this->app->enqueueMessage(
-                        Text::sprintf($element . '_ERROR_COMPATIBLE_JOOMLA', $this->minimumJoomla),
-                        'error'
-                    );
+                    $this->app->enqueueMessage(Text::sprintf($element . '_ERROR_COMPATIBLE_JOOMLA', $this->minimumJoomla), 'error');
 
                     return false;
                 }
@@ -348,10 +347,7 @@ return new class () implements ServiceProviderInterface {
                 // Check PHP
                 if (!(version_compare(PHP_VERSION, $this->minimumPhp) >= 0))
                 {
-                    $this->app->enqueueMessage(
-                        Text::sprintf($element . '_ERROR_COMPATIBLE_PHP', $this->minimumPhp),
-                        'error'
-                    );
+                    $this->app->enqueueMessage(Text::sprintf($element . '_ERROR_COMPATIBLE_PHP', $this->minimumPhp), 'error');
 
                     return false;
                 }
@@ -363,46 +359,44 @@ return new class () implements ServiceProviderInterface {
 	         *
 	         * Render message for install/update/remove processes
 	         *
-	         * @param   string  $header   Message header
-	         * @param   string  $message  message body
-	         * @param   string  $element  extension element
-	         * @param   string  $smile    smile for more emotionality
-	         *
+	         * @param string $header Message header
+	         * @param string $message message body
+	         * @param string $element extension element
+	         * @param string $smile smile for more emotionality
 	         *
 	         * @since 2.0.0
 	         */
 	        private function renderMessage(string $header, string $message, string $element, string $smile = '', string $message_type = 'info'): void
 			{
-				if(!empty($smile))
+				if (!empty($smile))
 				{
 					$smile .= $smile.' ';
 				}
 
 				$element = strtoupper($element);
 
-				$html = '
+                $html = '
 				<div class="row m-0">
-				<div class="col-12 col-md-8 p-0 pe-2">
-				<h2>' . $smile . $header .'</h2>';
+                    <div class="col-12 col-md-8 p-0 pe-2">
+                        <h2>' . $smile . $header .'</h2>
+                        ' . $message . '
+                    </div>
+                    <div class="col-12 col-md-4 p-0 d-flex flex-column justify-content-start">
+                        <img width="180" src="https://web-tolk.ru/web_tolk_logo_wide.png">
+                        <p>Joomla Extensions</p>
+                        <p class="btn-group">
+                            <a class="btn btn-sm btn-outline-primary" href="https://web-tolk.ru" target="_blank"> https://web-tolk.ru</a>
+                            <a class="btn btn-sm btn-outline-primary" href="mailto:info@web-tolk.ru"><i class="icon-envelope"></i> info@web-tolk.ru</a>
+                        </p>
+                        <div class="btn-group-vertical mb-3 web-tolk-btn-links" role="group" aria-label="Joomla community links">
+                            <a class="btn btn-danger text-white w-100" href="https://t.me/joomlaru" target="_blank">' . Text::_($element . '_JOOMLARU_TELEGRAM_CHAT') . '</a>
+                            <a class="btn btn-primary text-white w-100" href="https://t.me/webtolkru" target="_blank">' . Text::_($element . '_WEBTOLK_TELEGRAM_CHANNEL') . '</a>
+                        </div>
+                        ' . Text::_($element . "_MAYBE_INTERESTING") . '
+                    </div>
+                </div>
+                ';
 
-				$html .= $message;
-
-				$html .= '</div>
-				<div class="col-12 col-md-4 p-0 d-flex flex-column justify-content-start">
-				<img width="180" src="https://web-tolk.ru/web_tolk_logo_wide.png">
-				<p>Joomla Extensions</p>
-				<p class="btn-group">
-					<a class="btn btn-sm btn-outline-primary" href="https://web-tolk.ru" target="_blank"> https://web-tolk.ru</a>
-					<a class="btn btn-sm btn-outline-primary" href="mailto:info@web-tolk.ru"><i class="icon-envelope"></i> info@web-tolk.ru</a>
-				</p>
-				<div class="btn-group-vertical mb-3 web-tolk-btn-links" role="group" aria-label="Joomla community links">
-					<a class="btn btn-danger text-white w-100" href="https://t.me/joomlaru" target="_blank">' . Text::_($element . '_JOOMLARU_TELEGRAM_CHAT') . '</a>
-					<a class="btn btn-primary text-white w-100" href="https://t.me/webtolkru" target="_blank">' . Text::_($element . '_WEBTOLK_TELEGRAM_CHANNEL') . '</a>
-				</div>
-				' . Text::_($element . "_MAYBE_INTERESTING") . '
-				</div>
-
-				';
 				$this->app->enqueueMessage($html, $message_type);
 			}
         });
