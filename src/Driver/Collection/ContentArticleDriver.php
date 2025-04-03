@@ -1,7 +1,7 @@
 <?php
 /**
- * @package       WT Yandex map items
- * @version    2.0.0
+ * @package    WT Yandex map items
+ * @version    2.0.1
  * @author     Sergey Tolkachyov
  * @copyright  Copyright (c) 2022 - 2025 Sergey Tolkachyov. All rights reserved.
  * @license    GNU/GPL license: https://www.gnu.org/copyleft/gpl.html
@@ -17,13 +17,9 @@ use Joomla\CMS\Cache\CacheController;
 use Joomla\CMS\Cache\CacheControllerFactoryInterface;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Event\AbstractEvent;
-use Joomla\CMS\Event\CustomFields\AfterPrepareFieldEvent;
-use Joomla\CMS\Event\CustomFields\BeforePrepareFieldEvent;
-use Joomla\CMS\Event\CustomFields\PrepareFieldEvent;
 use Joomla\CMS\Factory;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
-use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Uri\Uri;
 use Joomla\Component\Content\Administrator\Extension\ContentComponent;
@@ -31,52 +27,56 @@ use Joomla\Component\Content\Site\Helper\RouteHelper;
 use Joomla\Component\Content\Site\Model\ArticlesModel;
 use Joomla\Component\Fields\Administrator\Helper\FieldsHelper;
 use Joomla\Component\Fields\Administrator\Model\FieldModel;
-use Joomla\Event\DispatcherInterface;
 use Joomla\Module\Wtyandexmapitems\Site\Driver\AbstractDriver;
 use Joomla\Registry\Registry;
 use stdClass;
-use function base64_encode;
-use function count;
-use function defined;
-use function explode;
-use function implode;
-use function is_countable;
-use function json_decode;
-use function trim;
 
-// no direct access
+// No direct access to this file
 defined('_JEXEC') or die;
 
 class ContentArticleDriver extends AbstractDriver
 {
 	/**
-	 * Current driver context.
+	 * Current driver context
 	 *
 	 * @var string
+     *
 	 * @since 2.0.0
 	 */
 	public $context = 'com_content.article';
 
 	/**
-	 * Module  params
+	 * Module params
 	 *
 	 * @var Registry
+     *
 	 * @since 2.0.0
 	 */
 	public $params;
 
     /**
-     * @var FieldModel $fieldModel
+     * Field model
+     *
+     * @var FieldModel
+     *
      * @since 2.0.0
      */
     private $fieldModel;
+
+    /**
+     * Field cache
+     *
+     * @var array
+     *
+     * @since 2.0.0
+     */
     private $fieldsCache = [];
 
 	/**
-	 * Get com_content articles with fields list
-	 * as a Yandex map markers.
+	 * Get com_content articles with fields list as a Yandex map markers
 	 *
 	 * @return array
+     *
 	 * @since 2.0.0
 	 */
 	public function getItems(): array
@@ -97,12 +97,13 @@ class ContentArticleDriver extends AbstractDriver
 
         /** @var CacheController $cache */
         $cache = Factory::getContainer()->get(CacheControllerFactoryInterface::class)->createCacheController('', [
-            'defaultgroup' => 'mod_wtyandexmapitems_cache',
+            'defaultgroup' => 'mod_wtyandexmapitems',
             'lifetime' => $lifetime,
             'caching' => $lifetime > 0
         ]);
 
-		$cacheKey = $this->context . '_items';
+		$cacheKey = $this->context . '_items' . $this->app->getInput()->get('module_id');
+
         if ($cache->contains($cacheKey))
         {
             $items = $cache->get($cacheKey);
@@ -121,12 +122,13 @@ class ContentArticleDriver extends AbstractDriver
 	}
 
     /**
-     * Получает материал com_content по идентификатору
+     * Get com_content article from id
      *
-     * @param int $id идентификатор материала
-     * @param Registry $params параметры
+     * @param int $id Article id
+     * @param Registry $params Module parameters
      *
-     * @return object|bool
+     * @return object|bool Article instance on success or false on failure
+     *
      * @since 2.0.0
      */
     private function getArticle(int $id, Registry $params): object|bool
@@ -269,6 +271,7 @@ class ContentArticleDriver extends AbstractDriver
             $this->fieldsCache[$field->name] = $field;
         }
     }
+
     private function getFields($itemId, $fieldIds): array
     {
         if ($this->fieldModel == null)
@@ -304,6 +307,7 @@ class ContentArticleDriver extends AbstractDriver
 
         return $this->fieldsCache;
     }
+
     private function addItemProperties(&$item, $access, $authorised): void
     {
         $item->readmore = strlen(trim($item->fulltext));
@@ -322,6 +326,7 @@ class ContentArticleDriver extends AbstractDriver
             $item->linkText = Text::_('COM_CONTENT_REGISTER_TO_READ_MORE');
         }
     }
+
     private function itemTriggerEvents(&$item): void
     {
         if (!empty($item->introtext))
@@ -333,6 +338,7 @@ class ContentArticleDriver extends AbstractDriver
             $item->fulltext = HTMLHelper::_('content.prepare', $item->fulltext, '', 'com_content.article');
         }
     }
+
     private function addItemJcfields(&$item, $params): void
     {
         try
@@ -370,6 +376,7 @@ class ContentArticleDriver extends AbstractDriver
             $item->jcfields = [];
         }
     }
+
     private function getJcfieldsFromFieldsStr($fields): array
     {
         $fields = explode(',', $fields);
@@ -397,6 +404,7 @@ class ContentArticleDriver extends AbstractDriver
 
         return $ids;
     }
+
     private function filterItemFields(&$item, $fields): void
     {
         $fields = explode(',', $fields);
@@ -450,11 +458,12 @@ class ContentArticleDriver extends AbstractDriver
     }
 
 	/**
-	 * Получает список материалов com_content
+	 * Get com_content articles
 	 *
-	 * @param Registry $params Wt Yandex map items module instance params
+	 * @param Registry $params Module parameters
 	 *
-	 * @return mixed
+	 * @return mixed Articles array on success or false on failure
+     *
 	 * @since 2.0.0
 	 */
 	private function getArticles(Registry $params): mixed
@@ -498,6 +507,11 @@ class ContentArticleDriver extends AbstractDriver
 
 		// Retrieve Content
 		$items = $model->getItems();
+
+        if (!$items)
+        {
+            return false;
+        }
 
         $this->createFieldsCache();
 
@@ -740,11 +754,12 @@ class ContentArticleDriver extends AbstractDriver
 	}
 
     /**
-     * Получает данные для всплывающего окна маркера по id материала
+     * Get item data from article id
      *
-     * @param int $id идентификатор материала
+     * @param int $id Article id
      *
      * @return stdClass
+     *
      * @since 2.0.0
      */
     public function getItem(int $id): stdClass
@@ -761,7 +776,6 @@ class ContentArticleDriver extends AbstractDriver
 
         $category_id = $article->catid;
 
-        /** @var array $category_fields Список полей со значениями для конкретных категорий. */
         $category_fields = [];
         try
         {

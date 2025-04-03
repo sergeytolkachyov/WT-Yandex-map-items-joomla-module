@@ -1,7 +1,7 @@
 <?php
 /**
- * @package       WT Yandex map items
- * @version    2.0.0
+ * @package    WT Yandex map items
+ * @version    2.0.1
  * @author     Sergey Tolkachyov
  * @copyright  Copyright (c) 2022 - 2025 Sergey Tolkachyov. All rights reserved.
  * @license    GNU/GPL license: https://www.gnu.org/copyleft/gpl.html
@@ -10,18 +10,20 @@
  */
 
 use Joomla\CMS\Application\CMSApplicationInterface;
-use Joomla\CMS\Factory;
 use Joomla\CMS\Helper\ModuleHelper;
 use Joomla\Input\Input;
 use Joomla\Registry\Registry;
 
+// No direct access to this file
 defined('_JEXEC') or die;
+
 /**
- * @var \stdClass  $module  The module
- * @var CMSApplicationInterface  $app  The application instance
- * @var Input  $input  The input instance
- * @var Registry  $params  Module params
- * @var Registry  $template  Template params
+ * @var stdClass $module The module instance
+ * @var CMSApplicationInterface $app The application instance
+ * @var Input $input The input instance
+ * @var Registry $params Module params
+ * @var Registry $template Template params
+ * @var array $layouts Marker and pop-up layouts
  *
  * And your own vars wich you can set in your module displatcher
  * src/Dispatcher/Dispatcher.php in function getLayoutData().
@@ -35,16 +37,17 @@ $yandex_map_api_entry_point_paid = 'https://enterprise.api-maps.yandex.ru/3.0';
 // Получаем API ключ Яндекс.карт
 $yandex_map_api_key = $params->get('yandex_map_api_key');
 
-$doc = Factory::getApplication()->getDocument();
-/** @var $wa \Joomla\CMS\WebAsset\WebAssetManager */
-$wa = $doc->getWebAssetManager();
 $yandex_map_entry_point = $params->get('yandex_api_type') === 'free' ? $yandex_map_api_entry_point_free : $yandex_map_api_entry_point_paid;
-$yandex_map_script_uri  = $yandex_map_entry_point . '/?apikey=' . $yandex_map_api_key . '&lang=' . str_replace('-', '_', Factory::getApplication()->getLanguage()->getTag());
+$yandex_map_script_uri = $yandex_map_entry_point . '/?apikey=' . $yandex_map_api_key . '&lang=' . str_replace('-', '_', $app->getLanguage()->getTag());
+
+$doc = $app->getDocument();
+$wa = $doc->getWebAssetManager();
 
 if (!$wa->assetExists('script','module.wtyandexmapitems.yandex') && !$wa->assetExists('script','plg.fields.wtyandexmap.yandex'))
 {
 	$wa->registerAndUseScript('module.wtyandexmapitems.yandex', $yandex_map_script_uri, [], [], ['core']);
 }
+
 $wa->registerAndUseScript('module.wtyandexmapitems.script', 'mod_wtyandexmapitems/script.js', [], ['defer' => true]);
 
 // Стиль для того, чтобы открытое всплывающее окно было поверх других маркеров
@@ -65,10 +68,7 @@ if ($isPopupModal)
     }
 }
 
-/**
- * Координаты центра карты из параметров плагина
- * и координаты из поля
- */
+// Координаты центра карты из параметров плагина
 $map_center_coords = explode(',', $params->get('map_center', '51.533562, 46.034266'));
 
 foreach ($map_center_coords as &$coord)
@@ -76,12 +76,12 @@ foreach ($map_center_coords as &$coord)
     $coord = (float)trim($coord);
 }
 
-$map_options = array(
+$map_options = [
 	'zoom' => $params->get('map_zoom', 7),
 	'type' => $params->get('map_type', 'scheme'),
     // В API 3.0 формат координат изменился, теперь это "Долгота, Широта"
 	'center' => array_reverse($map_center_coords)
-);
+];
 
 $doc->addScriptOptions('mod_wtyandexmapitems' . $module->id, $map_options);
 
