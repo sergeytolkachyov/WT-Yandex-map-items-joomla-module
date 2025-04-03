@@ -1,7 +1,7 @@
 <?php
 /**
- * @package       WT Yandex map items
- * @version    2.0.0
+ * @package    WT Yandex map items
+ * @version    2.0.1
  * @author     Sergey Tolkachyov
  * @copyright  Copyright (c) 2022 - 2025 Sergey Tolkachyov. All rights reserved.
  * @license    GNU/GPL license: https://www.gnu.org/copyleft/gpl.html
@@ -11,25 +11,26 @@
 
 namespace Joomla\Module\Wtyandexmapitems\Site\Dispatcher;
 
-defined('_JEXEC') or die;
-
 use Joomla\CMS\Dispatcher\AbstractModuleDispatcher;
 use Joomla\Module\Wtyandexmapitems\Site\Helper\WtyandexmapitemsHelper;
 
+// No direct access to this file
+defined('_JEXEC') or die;
+
 /**
- * Dispatcher class for mod_wtyandexmapitems
+ * Dispatcher class for "wt yandex map items" module
  *
- * @since  2.0.0
+ * @since 1.0.0
  */
 class Dispatcher extends AbstractModuleDispatcher
 {
 
 	/**
-	 * Returns the layout data.
+	 * Returns the layout data
 	 *
-	 * @return  array
+	 * @return array Layout data
 	 *
-	 * @since   2.0.0
+	 * @since 1.0.0
 	 */
 	protected function getLayoutData(): array
 	{

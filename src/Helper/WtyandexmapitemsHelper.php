@@ -1,7 +1,7 @@
 <?php
 /**
- * @package       WT Yandex map items
- * @version    2.0.0
+ * @package    WT Yandex map items
+ * @version    2.0.1
  * @author     Sergey Tolkachyov
  * @copyright  Copyright (c) 2022 - 2025 Sergey Tolkachyov. All rights reserved.
  * @license    GNU/GPL license: https://www.gnu.org/copyleft/gpl.html
@@ -11,7 +11,8 @@
 
 namespace Joomla\Module\Wtyandexmapitems\Site\Helper;
 
-use Joomla\CMS\Application\CMSApplication;
+use Exception;
+use Joomla\CMS\Application\CMSApplicationInterface;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Helper\ModuleHelper;
 use Joomla\CMS\Layout\FileLayout;
@@ -21,28 +22,36 @@ use Joomla\Module\Wtyandexmapitems\Site\Driver\AbstractDriver;
 use Joomla\Registry\Registry;
 use Joomla\Module\Wtyandexmapitems\Site\Driver\DriverFactory;
 use stdClass;
-use function defined;
 
 defined('_JEXEC') or die;
 
 /**
- * Helper for mod_wtyandexmapitems
+ * Helper class for "wt yandex map items" module
  *
- * @since  1.0
+ * @since 1.0.0
  */
 class WtyandexmapitemsHelper
 {
     private AbstractDriver $driverInstance;
 
+    /**
+     * Function is called by ajax request
+     *
+     * @return string Json response
+     *
+     * @throws Exception
+     *
+     * @since 2.0.0
+     */
 	public function getAjax(): string
 	{
 		$app = Factory::getApplication();
 		if ($module_id = $app->getInput()->get('module_id'))
 		{
 			$module = ModuleHelper::getModuleById($module_id);
-			if ($module->module != 'mod_wtyandexmapitems')
+			if ($module->module !== 'mod_wtyandexmapitems')
 			{
-				return new JsonResponse('', 'Module with specified module_id is not a mod_wtyandexmapitems type',true);
+				return new JsonResponse('', 'Module with specified module_id is not a mod_wtyandexmapitems type', true);
 			}
 		}
 		else
@@ -63,42 +72,44 @@ class WtyandexmapitemsHelper
 	}
 
 	/**
-	 * @param $params
-	 * @param $app
+     * Get item data for markers
+     *
+	 * @param Registry $params Module parameters
+	 * @param CMSApplicationInterface $app Application object
 	 *
-	 * @return array
-	 *
+	 * @return array Item data for markers
 	 *
 	 * @since 2.0.0
 	 */
-	public function getMarkers($params, $app): array
+	public function getMarkers(Registry $params, CMSApplicationInterface $app): array
 	{
         return $this->getDriver($params->get('data_source', 'com_content.article'), $params, $app)->getItems();
 	}
 
 	/**
-	 * Get item data for popup window on map
+	 * Get item data for pop-up window on map
 	 *
-	 * @param int $id
-	 * @param Registry $params
-	 * @param CMSApplication $app
+	 * @param int $id Item id
+	 * @param Registry $params Module parameters
+	 * @param CMSApplicationInterface $app Application instance
 	 *
-	 * @return array
+	 * @return stdClass Item data for pop-up window
 	 *
 	 * @since 2.0.0
 	 */
-	public function getMarker($id, $params, $app): stdClass
+	public function getMarker(int $id, Registry $params, CMSApplicationInterface $app): stdClass
     {
         return $this->getDriver($params->get('data_source', 'com_content.article'), $params, $app)->getItem($id);
     }
 
     /**
-     * Формирует массив макетов для маркеров или всплывающих окон
+     * Get marker and pop-up window layouts array
      *
-     * @param string $context
-     * @param Registry $params
+     * @param string $context The context from module
+     * @param Registry $params Module parameters
      *
-     * @return array
+     * @return array Layouts
+     *
      * @since 2.0.0
      */
     public function getLayouts(string $context, Registry $params): array
@@ -167,21 +178,31 @@ class WtyandexmapitemsHelper
         return $layouts;
     }
 
-	/**
-     * Получаем объект драйвера
+    /**
+     * Get driver instance object
      *
-	 * @param $context
-	 * @param $params
-	 * @param $app
-	 *
-	 * @return AbstractDriver|bool
-	 * @since 2.0.0
-	 */
-	public function getDriver($context, $params, $app): AbstractDriver|bool
+     * @param string $context The context from module
+     * @param Registry $params Module parameters
+     * @param CMSApplicationInterface $app Application instance
+     *
+     * @return AbstractDriver Driver instance
+     *
+     * @throws Exception
+     *
+     * @since 2.0.0
+     */
+	public function getDriver(string $context, Registry $params, CMSApplicationInterface $app): AbstractDriver
 	{
         if (empty($this->driverInstance))
         {
-            $this->driverInstance = DriverFactory::getDriver($context, $params, $app);
+            $driver = DriverFactory::getDriver($context, $params, $app);
+
+            if (!$driver)
+            {
+                throw new Exception('Failed to load driver instance.');
+            }
+
+            $this->driverInstance = $driver;
         }
 
 		return $this->driverInstance;

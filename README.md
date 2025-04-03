@@ -1,6 +1,8 @@
-[![Version](https://img.shields.io/badge/Version-1.0.0-blue.svg)]() [![Status](https://img.shields.io/badge/Status-stable-green.svg)]() [![JoomlaVersion](https://img.shields.io/badge/Joomla-4.2+-orange.svg)]() [![JoomlaVersion](https://img.shields.io/badge/Joomla-5.x-orange.svg)]() [![DocumentationRus](https://img.shields.io/badge/Documentation-rus-blue.svg)](https://web-tolk.ru/dev/joomla-modules/wt-yandex-map-items.html?utm_source=github) [![DocumentationRu](https://img.shields.io/badge/Documentation-ru-blueviolet.svg)](https://web-tolk.ru/dev/joomla-modules/wt-yandex-map-items?utm_source=github) [![DocumentationEng](https://img.shields.io/badge/Documentation-eng-blueviolet.svg)](https://web-tolk.ru/en/dev/joomla-modules/wt-yandex-map-items?utm_source=github)
+[![Version](https://img.shields.io/github/v/release/sergeytolkachyov/WT-Yandex-map-items-joomla-module.svg?label=Version)]() [![Status](https://img.shields.io/badge/Status-stable-green.svg)]() [![JoomlaVersion](https://img.shields.io/badge/Joomla-4.2+-orange.svg)]() [![JoomlaVersion](https://img.shields.io/badge/Joomla-5.x-orange.svg)]() [![DocumentationRu](https://img.shields.io/badge/Documentation-ru-blueviolet.svg)](https://web-tolk.ru/dev/joomla-modules/wt-yandex-map-items?utm_source=github) [![DocumentationEng](https://img.shields.io/badge/Documentation-eng-blueviolet.svg)](https://web-tolk.ru/en/dev/joomla-modules/wt-yandex-map-items?utm_source=github) 
 # WT Yandex map items Joomla module
 Display data from various component's custom fields like Yandex.Maps placemarks. Joomla articles are displayed as Yandex.maps placemarks. The module is written according to the new Joomla 4+ structure.
+
+https://github.com/user-attachments/assets/0547c3be-a0dd-439a-919c-1a064c168bd0
 
 The coordinates must be specified in the user field separated by commas. The field type is text. Or the [WT Yandex map field plugin]( https://github.com/sergeytolkachyov/Fields---WT-Yandex-map-Joomla-4-plugin)
 
