@@ -2,6 +2,8 @@
 # WT Yandex map items Joomla module
 Display data from various component's custom fields like Yandex.Maps placemarks. Joomla articles are displayed as Yandex.maps placemarks. The module is written according to the new Joomla 4+ structure.
 
+https://github.com/user-attachments/assets/0547c3be-a0dd-439a-919c-1a064c168bd0
+
 The coordinates must be specified in the user field separated by commas. The field type is text. Or the [WT Yandex map field plugin]( https://github.com/sergeytolkachyov/Fields---WT-Yandex-map-Joomla-4-plugin)
 
 ## Plugin uses the Yandex API.Maps 3.0.
