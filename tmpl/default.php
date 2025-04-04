@@ -107,5 +107,9 @@ if ($isPopupModal)
         require ModuleHelper::getLayoutPath($module->module, 'modal/uikit');
     }
 }
+
 ?>
-<div id="mod_wtyandexmapitems<?php echo $module->id; ?>" data-module-id="<?php echo $module->id; ?>" style="width: <?php echo $params->get('map_width'); ?>; height: <?php echo $params->get('map_height'); ?>; margin: 0; padding: 0;"></div>
+<div id="mod_wtyandexmapitems<?php echo $module->id; ?>"
+     data-module-id="<?php echo $module->id; ?>"
+     data-item-id="<?php echo $input->getInt('Itemid'); ?>"
+     style="width: <?php echo $params->get('map_width'); ?>; height: <?php echo $params->get('map_height'); ?>; margin: 0; padding: 0;"></div>

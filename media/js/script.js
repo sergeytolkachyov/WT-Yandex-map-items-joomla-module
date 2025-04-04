@@ -167,7 +167,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 let markerInstance = this;
 
                 Joomla.request({
-                    url: window.location.origin + "/index.php?option=com_ajax&module=wtyandexmapitems&module_id=" + this._props.module_id + "&id=" + this._props.id + "&format=raw",
+                    url: window.location.origin + "/index.php?option=com_ajax&module=wtyandexmapitems&module_id=" + this._props.module_id + "&Itemid=" + this._props.item_id + "&marker_id=" + this._props.id + "&format=raw",
                     onSuccess: function (response, xhr) {
                         const responseObj = JSON.parse(response);
                         const popupData = responseObj.data;
@@ -203,6 +203,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.querySelectorAll('[id^=mod_wtyandexmapitems]').forEach(mapHtmlObject => {
         // Числовой id модуля карты
         const module_id = parseInt(mapHtmlObject.getAttribute('data-module-id'));
+
+        // Числовой id текущего пункта меню
+        const item_id = mapHtmlObject.getAttribute('data-item-id');
 
         // Настройки карты
         const mapData = Joomla.getOptions(mapHtmlObject.id);
@@ -241,7 +244,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         map.addChild(new ymaps3.YMapDefaultFeaturesLayer());
 
         Joomla.request({
-            url: window.location.origin + "/index.php?option=com_ajax&module=wtyandexmapitems&module_id=" + module_id + "&format=raw",
+            url: window.location.origin + "/index.php?option=com_ajax&module=wtyandexmapitems&module_id=" + module_id + "&Itemid=" + item_id + "&format=raw",
             onSuccess: function (response, xhr)
             {
                 if (response !== "")
@@ -267,6 +270,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const markerRender = (feature) => {
                         return new YMapCustomMarker({
                             module_id: module_id,
+                            item_id: item_id,
                             id: feature.id.toString(),
                             coordinates: feature.geometry.coordinates,
                             title: feature.item.title,

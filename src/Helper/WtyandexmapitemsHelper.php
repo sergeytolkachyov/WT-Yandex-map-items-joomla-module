@@ -46,7 +46,8 @@ class WtyandexmapitemsHelper
 	public function getAjax(): string
 	{
 		$app = Factory::getApplication();
-		if ($module_id = $app->getInput()->get('module_id'))
+
+        if ($module_id = $app->getInput()->get('module_id'))
 		{
 			$module = ModuleHelper::getModuleById($module_id);
 			if ($module->module !== 'mod_wtyandexmapitems')
@@ -61,7 +62,7 @@ class WtyandexmapitemsHelper
 
 		$module_params = new Registry($module->params);
 
-		$item_id = $app->getInput()->getInt('id', -1);
+        $item_id = $app->getInput()->getInt('marker_id', -1);
 
 		if ($item_id >= 0)
 		{
