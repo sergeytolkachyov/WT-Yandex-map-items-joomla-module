@@ -128,11 +128,6 @@ return new class () implements ServiceProviderInterface {
              */
             public function uninstall(InstallerAdapter $adapter): bool
             {
-	            $element = strtoupper($adapter->getElement());
-
-	            $header = Text::_($element . '_AFTER_UPDATE') . ' <br/>' . Text::_($element);
-	            $this->renderMessage(header: $header, message: '', element: $adapter->getElement(), smile:'&#128546');
-
                 // Remove layouts
                 $this->removeLayouts($adapter->getParent()->getManifest()->layouts);
                 
@@ -205,6 +200,10 @@ return new class () implements ServiceProviderInterface {
                     $smile_key = array_rand($smiles, 1);
                     $smile = $smiles[$smile_key];
                 }
+				else
+				{
+					$smile = '&#128546';
+				}
 
                 $element = strtoupper($adapter->getElement());
 
