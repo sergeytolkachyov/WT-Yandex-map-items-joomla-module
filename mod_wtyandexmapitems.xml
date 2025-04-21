@@ -2,12 +2,12 @@
 <extension type="module" client="site" method="upgrade">
 	<name>MOD_WTYANDEXMAPITEMS</name>
 	<author>Sergey Tolkachyov</author>
-	<creationDate>3.04.2025</creationDate>
+	<creationDate>19.04.2025</creationDate>
 	<copyright>Copyright (c) 2022 - 2025 Sergey Tolkachyov. All rights reserved.</copyright>
 	<license>GNU General Public License version 3 or later</license>
 	<authorEmail>info@web-tolk.ru</authorEmail>
 	<authorUrl>https://web-tolk.ru</authorUrl>
-	<version>2.0.2</version>
+	<version>2.0.3</version>
 	<description>MOD_WTYANDEXMAPITEMS_DESC</description>
 	<namespace path="src">Joomla\Module\Wtyandexmapitems</namespace>
 	<scriptfile>script.php</scriptfile>
@@ -192,7 +192,7 @@
 						   type="sql"
 						   label="MOD_WTYANDEXMAPITEMS_VIEW_LAYOUT_FIELD"
 						   default=""
-						   query="SELECT id, title FROM #__fields WHERE state = 1 AND type = 'text' AND context = 'com_content.categories'"
+						   query="SELECT id, title FROM #__fields WHERE state = 1 AND context = 'com_content.categories'"
 						   key_field="id"
 						   value_field="title"
 						   showon="is_default_marker:0[AND]category_marker_view:layout"
@@ -229,7 +229,7 @@
 						   type="sql"
 						   label="MOD_WTYANDEXMAPITEMS_VIEW_LAYOUT_FIELD"
 						   default=""
-						   query="SELECT id, title FROM #__fields WHERE state = 1 AND type = 'text' AND context = 'com_content.article'"
+						   query="SELECT id, title FROM #__fields WHERE state = 1 AND context = 'com_content.article'"
 						   key_field="id"
 						   value_field="title"
 						   showon="is_default_marker:0[AND]article_marker_view:layout"
@@ -277,7 +277,7 @@
 						   type="sql"
 						   label="MOD_WTYANDEXMAPITEMS_VIEW_LAYOUT_FIELD"
 						   default=""
-						   query="SELECT id, title FROM #__fields WHERE state = 1 AND type = 'text' AND context = 'com_content.categories'"
+						   query="SELECT id, title FROM #__fields WHERE state = 1 AND context = 'com_content.categories'"
 						   key_field="id"
 						   value_field="title"
 						   showon="use_popup:custom[AND]category_popup_view:layout"
@@ -295,7 +295,7 @@
 						   type="sql"
 						   label="MOD_WTYANDEXMAPITEMS_VIEW_LAYOUT_FIELD"
 						   default=""
-						   query="SELECT id, title FROM #__fields WHERE state = 1 AND type = 'text' AND context = 'com_content.article'"
+						   query="SELECT id, title FROM #__fields WHERE state = 1 AND context = 'com_content.article'"
 						   key_field="id"
 						   value_field="title"
 						   showon="use_popup:custom[AND]article_popup_view:layout"
