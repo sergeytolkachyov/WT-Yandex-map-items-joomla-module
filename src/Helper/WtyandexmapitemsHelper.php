@@ -1,11 +1,11 @@
 <?php
 /**
- * @package    WT Yandex map items
- * @version    2.0.3
- * @author     Sergey Tolkachyov
+ * @package       WT Yandex map items
+ * @version    2.0.4
+ * @author        Sergey Tolkachyov
  * @copyright  Copyright (c) 2022 - 2025 Sergey Tolkachyov. All rights reserved.
  * @license    GNU/GPL license: https://www.gnu.org/copyleft/gpl.html
- * @link       https://web-tolk.ru
+ * @link          https://web-tolk.ru
  * @since      1.0.0
  */
 
@@ -43,62 +43,62 @@ class WtyandexmapitemsHelper
      *
      * @since 2.0.0
      */
-	public function getAjax(): string
-	{
-		$app = Factory::getApplication();
+    public function getAjax(): string
+    {
+        $app = Factory::getApplication();
 
         if ($module_id = $app->getInput()->get('module_id'))
-		{
-			$module = ModuleHelper::getModuleById($module_id);
-			if ($module->module !== 'mod_wtyandexmapitems')
-			{
-				return new JsonResponse('', 'Module with specified module_id is not a mod_wtyandexmapitems type', true);
-			}
-		}
-		else
-		{
-			$module = ModuleHelper::getModule('wtyandexmapitems');
-		}
+        {
+            $module = ModuleHelper::getModuleById($module_id);
+            if ($module->module !== 'mod_wtyandexmapitems')
+            {
+                return new JsonResponse('', 'Module with specified module_id is not a mod_wtyandexmapitems type', true);
+            }
+        }
+        else
+        {
+            $module = ModuleHelper::getModule('wtyandexmapitems');
+        }
 
-		$module_params = new Registry($module->params);
+        $module_params = new Registry($module->params);
 
         $item_id = $app->getInput()->getInt('marker_id', -1);
 
-		if ($item_id >= 0)
-		{
-			return new JsonResponse($this->getMarker($item_id, $module_params, $app));
-		}
+        if ($item_id >= 0)
+        {
+            return new JsonResponse($this->getMarker($item_id, $module_params, $app));
+        }
 
-		return new JsonResponse($this->getMarkers($module_params, $app));
-	}
+        return new JsonResponse($this->getMarkers($module_params, $app));
+    }
 
-	/**
+    /**
      * Get item data for markers
      *
-	 * @param Registry $params Module parameters
-	 * @param CMSApplicationInterface $app Application object
-	 *
-	 * @return array Item data for markers
-	 *
-	 * @since 2.0.0
-	 */
-	public function getMarkers(Registry $params, CMSApplicationInterface $app): array
-	{
+     * @param Registry $params Module parameters
+     * @param CMSApplicationInterface $app Application object
+     *
+     * @return array Item data for markers
+     *
+     * @since 2.0.0
+     */
+    public function getMarkers(Registry $params, CMSApplicationInterface $app): array
+    {
         return $this->getDriver($params->get('data_source', 'com_content.article'), $params, $app)->getItems();
-	}
+    }
 
-	/**
-	 * Get item data for pop-up window on map
-	 *
-	 * @param int $id Item id
-	 * @param Registry $params Module parameters
-	 * @param CMSApplicationInterface $app Application instance
-	 *
-	 * @return stdClass Item data for pop-up window
-	 *
-	 * @since 2.0.0
-	 */
-	public function getMarker(int $id, Registry $params, CMSApplicationInterface $app): stdClass
+    /**
+     * Get item data for pop-up window on map
+     *
+     * @param int $id Item id
+     * @param Registry $params Module parameters
+     * @param CMSApplicationInterface $app Application instance
+     *
+     * @return stdClass Item data for pop-up window
+     *
+     * @since 2.0.0
+     */
+    public function getMarker(int $id, Registry $params, CMSApplicationInterface $app): stdClass
     {
         return $this->getDriver($params->get('data_source', 'com_content.article'), $params, $app)->getItem($id);
     }
@@ -117,41 +117,47 @@ class WtyandexmapitemsHelper
     {
         $fieldIds = [];
 
-        if ($params->get('is_default_marker') === 0 && $params->get('category_marker_view') === 'layout')
-        {
-            $fieldIds[] = $params->get('category_marker_view_layout_field_id');
+        /**
+         * Макеты маркеров. Не изображения
+         */
+        if ($params->get('is_default_marker') === 0) {
+
+            if($params->get('category_marker_view') === 'layout')
+            {
+                $fieldIds[] = $params->get('category_marker_view_layout_field_id');
+            }
+
+            if($params->get('article_marker_view') === 'layout')
+            {
+                $fieldIds[] = $params->get('article_marker_view_layout_field_id');
+            }
         }
 
-        if ($params->get('is_default_marker') === 0 && $params->get('article_marker_view') === 'layout')
-        {
-            $fieldIds[] = $params->get('article_marker_view_layout_field_id');
-        }
 
-        if ($params->get('use_popup') === 'custom' && $params->get('category_popup_view') === 'layout'
-            // дополнительное условие:
-            // при значении для материала default нет смысла грузить макет категории
-            && $params->get('article_popup_view') !== 'default'
-        )
-        {
-            $fieldIds[] = $params->get('category_popup_view_layout_field_id');
-        }
 
-        if ($params->get('use_popup') === 'custom' && $params->get('article_popup_view') === 'layout')
-        {
-            $fieldIds[] = $params->get('article_popup_view_layout_field_id');
+        $layouts = [];
+        /**
+         * Пользовательские макеты всплывающих окон
+         */
+        if($params->get('use_popup','default') !== 'none') {
+            // Макет по умолчанию добавляем всегда. Использовать для рендера, если с указанным макетом проблемы
+            $layout = new FileLayout('modules.mod_wtyandexmapitems.popup.default');
+            $layouts[$layout->getLayoutId()] = $layout->render(['params' => $params]);
+            // Всплывающее окно категории == макет
+            if($params->get('category_popup_view') === 'layout')
+            {
+                $fieldIds[] = $params->get('category_popup_view_layout_field_id');
+            }
+            // Всплывающее окно материала - макет
+            if($params->get('article_popup_view') === 'layout')
+            {
+                $fieldIds[] = $params->get('article_popup_view_layout_field_id');
+            }
+
         }
 
         $fieldIds = array_unique($fieldIds);
 
-        $layouts = [];
-        if ($params->get('use_popup') === 'default'
-            || ($params->get('use_popup') === 'custom' && $params->get('category_popup_view') === 'default')
-            || ($params->get('use_popup') === 'custom' && $params->get('article_popup_view') === 'default')
-        )
-        {
-            $layout = new FileLayout('modules.mod_wtyandexmapitems.popup.default');
-            $layouts[$layout->getLayoutId()] = $layout->render(['params' => $params]);
-        }
 
         if (empty($fieldIds))
         {
@@ -173,7 +179,7 @@ class WtyandexmapitemsHelper
         foreach ($layoutNames as $layoutName)
         {
             $layout = new FileLayout($layoutName->value);
-            $layouts[$layoutName->value] = $layout->render(['params' => $params]);
+            $layouts[$layout->getLayoutId()] = $layout->render(['params' => $params]);
         }
 
         return $layouts;
@@ -192,8 +198,8 @@ class WtyandexmapitemsHelper
      *
      * @since 2.0.0
      */
-	public function getDriver(string $context, Registry $params, CMSApplicationInterface $app): AbstractDriver
-	{
+    public function getDriver(string $context, Registry $params, CMSApplicationInterface $app): AbstractDriver
+    {
         if (empty($this->driverInstance))
         {
             $driver = DriverFactory::getDriver($context, $params, $app);
@@ -206,7 +212,7 @@ class WtyandexmapitemsHelper
             $this->driverInstance = $driver;
         }
 
-		return $this->driverInstance;
-	}
+        return $this->driverInstance;
+    }
 
 }
