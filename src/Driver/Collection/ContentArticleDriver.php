@@ -1,11 +1,11 @@
 <?php
 /**
- * @package    WT Yandex map items
- * @version    2.0.3
- * @author     Sergey Tolkachyov
+ * @package       WT Yandex map items
+ * @version    2.0.4
+ * @author        Sergey Tolkachyov
  * @copyright  Copyright (c) 2022 - 2025 Sergey Tolkachyov. All rights reserved.
  * @license    GNU/GPL license: https://www.gnu.org/copyleft/gpl.html
- * @link       https://web-tolk.ru
+ * @link          https://web-tolk.ru
  * @since      2.0.0
  */
 
@@ -36,23 +36,23 @@ defined('_JEXEC') or die;
 
 class ContentArticleDriver extends AbstractDriver
 {
-	/**
-	 * Current driver context
-	 *
-	 * @var string
+    /**
+     * Current driver context
      *
-	 * @since 2.0.0
-	 */
-	public $context = 'com_content.article';
+     * @var string
+     *
+     * @since 2.0.0
+     */
+    public $context = 'com_content.article';
 
-	/**
-	 * Module params
-	 *
-	 * @var Registry
+    /**
+     * Module params
      *
-	 * @since 2.0.0
-	 */
-	public $params;
+     * @var Registry
+     *
+     * @since 2.0.0
+     */
+    public $params;
 
     /**
      * Field model
@@ -72,15 +72,15 @@ class ContentArticleDriver extends AbstractDriver
      */
     private $fieldsCache = [];
 
-	/**
-	 * Get com_content articles with fields list as a Yandex map markers
-	 *
-	 * @return array
+    /**
+     * Get com_content articles with fields list as a Yandex map markers
      *
-	 * @since 2.0.0
-	 */
-	public function getItems(): array
-	{
+     * @return array
+     *
+     * @since 2.0.0
+     */
+    public function getItems(): array
+    {
         $lifetime = 0;
 
         if ($this->params->get('use_custom_cache_time') === 1)
@@ -102,7 +102,7 @@ class ContentArticleDriver extends AbstractDriver
             'caching' => $lifetime > 0
         ]);
 
-		$cacheKey = $this->context . '_items' . $this->app->getInput()->get('module_id');
+        $cacheKey = $this->context . '_items' . $this->app->getInput()->get('module_id');
 
         if ($cache->contains($cacheKey))
         {
@@ -119,7 +119,7 @@ class ContentArticleDriver extends AbstractDriver
         $cache->store($items, $cacheKey);
 
         return $data;
-	}
+    }
 
     /**
      * Get com_content article from id
@@ -184,8 +184,8 @@ class ContentArticleDriver extends AbstractDriver
             $item->link->setVar('return', base64_encode(RouteHelper::getArticleRoute($item->slug, $item->catid, $item->language)));
             $item->linkText = Text::_('COM_CONTENT_REGISTER_TO_READ_MORE');
         }
-        $item->introtext = HTMLHelper::_('content.prepare', $item->introtext, '', 'mod_wtyandexmapitems.content');
-
+//        $item->introtext = HTMLHelper::_('content.prepare', $item->introtext, '', 'mod_wtyandexmapitems.content');
+        $this->itemTriggerEvents($item);
         // Try insert fields in $item
         try
         {
@@ -327,8 +327,20 @@ class ContentArticleDriver extends AbstractDriver
         }
     }
 
+    /**
+     * Обработка содержимого контент-плагинами
+     *
+     * @param object $item Объект материала
+     *
+     *
+     * @since version
+     */
     private function itemTriggerEvents(&$item): void
     {
+        if (!empty($item->text))
+        {
+            $item->text = HTMLHelper::_('content.prepare', $item->text, '', 'com_content.article');
+        }
         if (!empty($item->introtext))
         {
             $item->introtext = HTMLHelper::_('content.prepare', $item->introtext, '', 'com_content.article');
@@ -349,7 +361,7 @@ class ContentArticleDriver extends AbstractDriver
             {
                 $fieldIds[] = (int)$params->get('article_marker_view_media_field_id');
             }
-            else if ($params->get('article_marker_view') === 'layout')
+            elseif ($params->get('article_marker_view') === 'layout')
             {
                 $fieldIds[] = (int)$params->get('article_marker_view_layout_field_id');
             }
@@ -448,7 +460,7 @@ class ContentArticleDriver extends AbstractDriver
                         $item->item->$arrayName[$value->name] = $value;
                     }
                     // иначе, ищем значение по ключу
-                    else if ($key === $array[1])
+                    elseif ($key === $array[1])
                     {
                         $item->item->$arrayName[$key] = $value;
                     }
@@ -457,56 +469,56 @@ class ContentArticleDriver extends AbstractDriver
         }
     }
 
-	/**
-	 * Get com_content articles
-	 *
-	 * @param Registry $params Module parameters
-	 *
-	 * @return mixed Articles array on success or false on failure
+    /**
+     * Get com_content articles
      *
-	 * @since 2.0.0
-	 */
-	private function getArticles(Registry $params): mixed
-	{
+     * @param Registry $params Module parameters
+     *
+     * @return mixed Articles array on success or false on failure
+     *
+     * @since 2.0.0
+     */
+    private function getArticles(Registry $params): mixed
+    {
         $article_catid = $params->get('article_catid', []);
 
         /** @var ArticlesModel $model */
-		$model = $this->app->bootComponent('com_content')->getMVCFactory()->createModel('Articles', 'Site', ['ignore_request' => true]);
+        $model = $this->app->bootComponent('com_content')->getMVCFactory()->createModel('Articles', 'Site', ['ignore_request' => true]);
 
-		// Set application parameters in model
-		$appParams = $this->app->getParams();
-		$model->setState('params', $appParams);
+        // Set application parameters in model
+        $appParams = $this->app->getParams();
+        $model->setState('params', $appParams);
 
-		$model->setState('list.start', 0);
-		$model->setState('filter.published', ContentComponent::CONDITION_PUBLISHED);
+        $model->setState('list.start', 0);
+        $model->setState('filter.published', ContentComponent::CONDITION_PUBLISHED);
 
-		// Set the filters based on the module params
-		$model->setState('list.limit', (int) $params->get('count', 5));
+        // Set the filters based on the module params
+        $model->setState('list.limit', (int) $params->get('count', 5));
 
-		// This module does not use tags data
-		$model->setState('load_tags', false);
+        // This module does not use tags data
+        $model->setState('load_tags', false);
 
-		// Access filter
-		$access = !ComponentHelper::getParams('com_content')->get('show_noauth');
-		$authorised = Access::getAuthorisedViewLevels($this->app->getIdentity()->id);
-		$model->setState('filter.access', $access);
+        // Access filter
+        $access = !ComponentHelper::getParams('com_content')->get('show_noauth');
+        $authorised = Access::getAuthorisedViewLevels($this->app->getIdentity()->id);
+        $model->setState('filter.access', $access);
 
-		// Category filter
-		$model->setState('filter.category_id', $article_catid);
+        // Category filter
+        $model->setState('filter.category_id', $article_catid);
 
-		// Filter by language
-		$model->setState('filter.language', $this->app->getLanguageFilter());
+        // Filter by language
+        $model->setState('filter.language', $this->app->getLanguageFilter());
 
-		// Filter by tag
-		$model->setState('filter.tag', $params->get('article_tag', []));
+        // Filter by tag
+        $model->setState('filter.tag', $params->get('article_tag', []));
 
-		$model->setState('filter.featured', 'show');
+        $model->setState('filter.featured', 'show');
 
-		// Check if we should trigger additional plugin events
-		$triggerEvents = $params->get('article_triggerevents', 1);
+        // Check if we should trigger additional plugin events
+        $triggerEvents = $params->get('article_triggerevents', 1);
 
-		// Retrieve Content
-		$items = $model->getItems();
+        // Retrieve Content
+        $items = $model->getItems();
 
         if (!$items)
         {
@@ -532,74 +544,75 @@ class ContentArticleDriver extends AbstractDriver
             {
                 continue;
             }
-			// Если есть пользовательские поля
-			foreach ($category_fields as $field)
-			{
-				// Ищем поле типа media - иконка
-				if ($params->get('is_default_marker') === 0
+            // Если есть пользовательские поля
+            foreach ($category_fields as $field)
+            {
+                // Ищем поле типа media - иконка
+                if ($params->get('is_default_marker') === 0
                     && $params->get('category_marker_view') === 'media'
-					&& $field->id == $params->get('category_marker_view_media_field_id')
-				)
-				{
-					$iconData = json_decode($field->rawvalue);
+                    && $field->id == $params->get('category_marker_view_media_field_id')
+                )
+                {
+                    $iconData = json_decode($field->rawvalue);
 
-					if ($iconData->imagefile)
-					{
-						$imgObj = HTMLHelper::cleanImageURL($iconData->imagefile);
+                    if ($iconData->imagefile)
+                    {
+                        $imgObj = HTMLHelper::cleanImageURL($iconData->imagefile);
                         unset($iconData->imagefile);
 
                         $iconData = (object) array_merge((array)$iconData, (array)$imgObj);
 
                         $category_marker_icons[$category_id] = $iconData;
                     }
-				}
-				// Ищем поле типа text - id макета
-				else if ($params->get('is_default_marker') === 0
+                }
+                // Ищем поле типа text - id макета
+                elseif ($params->get('is_default_marker') === 0
                     && $params->get('category_marker_view') === 'layout'
-					&& $field->id == $params->get('category_marker_view_layout_field_id')
-				)
-				{
-					if ($field->rawvalue)
-					{
-						$category_marker_layout_ids[$category_id] = $field->rawvalue;
-					}
-				}
+                    && $field->id == $params->get('category_marker_view_layout_field_id')
+                )
+                {
+                    if ($field->rawvalue)
+                    {
+                        $marker_layout_id = is_array($field->rawvalue) ? $field->rawvalue[0] : trim($field->rawvalue);
+                        $category_marker_layout_ids[$category_id] = $marker_layout_id;
+                    }
+                }
                 // Ищем поле типа text - есть ли popup макета
-                else if ($params->get('use_popup') === 'custom'
+                elseif ($params->get('use_popup') === 'custom'
                     && $params->get('category_popup_view') === 'layout'
                     && $field->id == $params->get('category_popup_view_layout_field_id')
                 )
                 {
                     $category_has_popup_layout[$category_id] = (bool)$field->rawvalue;
                 }
-                else if ($params->get('use_popup') === 'custom'
+                elseif ($params->get('use_popup') === 'custom'
                     && $params->get('category_popup_view') === 'default'
                 )
                 {
                     $category_has_popup_layout[$category_id] = true;
                 }
-			}
+            }
         }
 
-		/**
-		 * Подключаем файл с языковыми константами
-		 */
-		$lang = $this->app->getLanguage();
-		$extension = 'com_content';
-		$base_dir = JPATH_SITE;
-		$reload = true;
-		$lang->load($extension, $base_dir, $lang->getTag(), $reload);
+        /**
+         * Подключаем файл с языковыми константами
+         */
+        $lang = $this->app->getLanguage();
+        $extension = 'com_content';
+        $base_dir = JPATH_SITE;
+        $reload = true;
+        $lang->load($extension, $base_dir, $lang->getTag(), $reload);
 
-		foreach ($items as $i => &$item)
-		{
+        foreach ($items as $i => &$item)
+        {
             $this->addItemProperties($item, $access, $authorised);
 
             if ($triggerEvents)
-			{
+            {
                 $this->itemTriggerEvents($item);
-			}
+            }
 
-			// Try insert fields in $item
+            // Try insert fields in $item
             $this->addItemJcfields($item, $params);
 
             // Convert images string to json array
@@ -654,7 +667,7 @@ class ContentArticleDriver extends AbstractDriver
             {
                 $item->has_popup = $category_has_popup_layout[$catid];
             }
-            
+
             if ($params->get('is_default_marker') === 0
                 && $params->get('article_marker_view') === 'media'
             )
@@ -669,7 +682,7 @@ class ContentArticleDriver extends AbstractDriver
                         $item->icon->alt_text = $item->itemOriginal->images->image_intro_alt;
                     }
                 }
-                else if ($params->get('article_marker_view_media_from') === 'fulltext')
+                elseif ($params->get('article_marker_view_media_from') === 'fulltext')
                 {
                     if ($item->itemOriginal->images->image_fulltext)
                     {
@@ -708,7 +721,7 @@ class ContentArticleDriver extends AbstractDriver
                     }
                 }
                 // Ищем поле типа text - id макета
-                else if ($params->get('is_default_marker') === 0
+                elseif ($params->get('is_default_marker') === 0
                     && $params->get('article_marker_view') === 'layout'
                     && $field->id == $params->get('article_marker_view_layout_field_id')
                 )
@@ -719,7 +732,7 @@ class ContentArticleDriver extends AbstractDriver
                     }
                 }
                 // Ищем поле типа text - есть ли popup макета
-                else if ($params->get('use_popup') === 'custom'
+                elseif ($params->get('use_popup') === 'custom'
                     && $params->get('article_popup_view') === 'layout'
                     && $field->id == $params->get('article_popup_view_layout_field_id')
                 )
@@ -729,7 +742,7 @@ class ContentArticleDriver extends AbstractDriver
                         $item->has_popup = true;
                     }
                 }
-                else if ($params->get('use_popup') === 'default' || ($params->get('use_popup') === 'custom' && $params->get('article_popup_view') === 'default'))
+                elseif ($params->get('use_popup') === 'default' || ($params->get('use_popup') === 'custom' && $params->get('article_popup_view') === 'default'))
                 {
                     $item->has_popup = true;
                 }
@@ -748,11 +761,11 @@ class ContentArticleDriver extends AbstractDriver
             $this->filterItemFields($item, $params->get('item_fields_for_marker', ''));
 
             unset($item->itemOriginal);
-		}
+        }
 
         // re-indexing an array after possible unsetting of any element
-		return array_values($items);
-	}
+        return array_values($items);
+    }
 
     /**
      * Get item data from article id
@@ -787,41 +800,42 @@ class ContentArticleDriver extends AbstractDriver
             // Exception
         }
 
+
+        $popupData->popup_layout_id = 'modules.mod_wtyandexmapitems.popup.default';
+
         // Поиск в полях категории
-        foreach ($category_fields as $field)
-        {
-            // Ищем поле типа text - id макета popup
-            if ($params->get('use_popup') === 'custom'
-                && $params->get('category_popup_view') === 'layout'
-                && $field->id == $params->get('category_popup_view_layout_field_id'))
+        if ($params->get('use_popup') === 'custom'
+            && $params->get('category_popup_view') === 'layout') {
+
+            foreach ($category_fields as $field)
             {
-                if ($field->rawvalue)
+                // Ищем поле типа text - id макета popup
+                if ($field->id == (int)$params->get('category_popup_view_layout_field_id') && !empty($field->rawvalue))
                 {
-                    $popupData->popup_layout_id = $field->rawvalue;
+                    $popup_layout_id = is_array($field->rawvalue) ? $field->rawvalue[0] : trim($field->rawvalue);
+                    if(!empty($popup_layout_id)) {
+                        $popupData->popup_layout_id = $popup_layout_id;
+                    }
+
                 }
-            }
-            else if ($params->get('use_popup') === 'custom' && $params->get('category_popup_view') === 'default')
-            {
-                $popupData->popup_layout_id = 'modules.mod_wtyandexmapitems.popup.default';
             }
         }
 
+
+        // Ищем поле типа text - id макета popup
         // Поиск в полях материала
         foreach ($article->jcfields as $field)
         {
             // Ищем поле типа text - id макета popup
             if ($params->get('use_popup') === 'custom'
                 && $params->get('article_popup_view') === 'layout'
-                && $field->id == $params->get('article_popup_view_layout_field_id'))
+                && $field->id == $params->get('article_popup_view_layout_field_id')
+                && !empty($field->rawvalue))
             {
-                if ($field->rawvalue)
-                {
-                    $popupData->popup_layout_id = $field->rawvalue;
+                $popup_layout_id = is_array($field->rawvalue) ? $field->rawvalue[0] : trim($field->rawvalue);
+                if(!empty($popup_layout_id)) {
+                    $popupData->popup_layout_id = $popup_layout_id;
                 }
-            }
-            else if ($params->get('use_popup') === 'default' || ($params->get('use_popup') === 'custom' && $params->get('article_popup_view') === 'default'))
-            {
-                $popupData->popup_layout_id = 'modules.mod_wtyandexmapitems.popup.default';
             }
         }
 
