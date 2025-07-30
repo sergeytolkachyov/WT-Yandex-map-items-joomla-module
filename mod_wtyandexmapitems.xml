@@ -2,12 +2,12 @@
 <extension type="module" client="site" method="upgrade">
 	<name>MOD_WTYANDEXMAPITEMS</name>
 	<author>Sergey Tolkachyov</author>
-	<creationDate>25.06.2025</creationDate>
+	<creationDate>30.07.2025</creationDate>
 	<copyright>Copyright (c) 2022 - 2025 Sergey Tolkachyov. All rights reserved.</copyright>
 	<license>GNU General Public License version 3 or later</license>
 	<authorEmail>info@web-tolk.ru</authorEmail>
 	<authorUrl>https://web-tolk.ru</authorUrl>
-	<version>2.0.4</version>
+	<version>2.0.5</version>
 	<description>MOD_WTYANDEXMAPITEMS_DESC</description>
 	<namespace path="src">Joomla\Module\Wtyandexmapitems</namespace>
 	<scriptfile>script.php</scriptfile>
@@ -301,6 +301,19 @@
 						   value_field="title"
 						   showon="use_popup:custom[AND]article_popup_view:layout"
 					/>
+				</fieldset>
+				<fieldset name="display_params_module" label="MOD_WTYANDEXMAPITEMS_DISPLAY_PARAMS_MODULE"
+						  description="MOD_WTYANDEXMAPITEMS_DISPLAY_PARAMS_MODULE_DESC">
+					<field name="use_overlay"
+						   type="radio"
+						   label="MOD_WTYANDEXMAPITEMS_USE_OVERLAY"
+						   description="MOD_WTYANDEXMAPITEMS_USE_OVERLAY_DESC"
+						   layout="joomla.form.field.radio.switcher"
+						   default="0"
+						   filter="integer">
+						<option value="0">JNO</option>
+						<option value="1">JYES</option>
+					</field>
 				</fieldset>
 			</fieldset>
 			<fieldset name="yandex_map_params" label="MOD_WTYANDEXMAPITEMS_YANDEX_MAP_PARAMS_FIELDSET_LABEL">
