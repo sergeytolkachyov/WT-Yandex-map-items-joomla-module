@@ -1,7 +1,7 @@
 <?php
 /**
  * @package       WT Yandex map items
- * @version    2.0.4
+ * @version    2.0.5
  * @author        Sergey Tolkachyov
  * @copyright  Copyright (c) 2022 - 2025 Sergey Tolkachyov. All rights reserved.
  * @license    GNU/GPL license: https://www.gnu.org/copyleft/gpl.html
@@ -75,12 +75,13 @@ foreach ($map_center_coords as &$coord)
 {
     $coord = (float)trim($coord);
 }
-
+$use_overlay = $params->get('use_overlay', false);
 $map_options = [
 	'zoom' => $params->get('map_zoom', 7),
 	'type' => $params->get('map_type', 'scheme'),
     // В API 3.0 формат координат изменился, теперь это "Долгота, Широта"
-	'center' => array_reverse($map_center_coords)
+	'center' => array_reverse($map_center_coords),
+    'useOverlay'=> $use_overlay,
 ];
 
 $doc->addScriptOptions('mod_wtyandexmapitems' . $module->id, $map_options);
@@ -109,7 +110,19 @@ if ($isPopupModal)
 }
 
 ?>
+<div style="position:relative;">
 <div id="mod_wtyandexmapitems<?php echo $module->id; ?>"
-     data-module-id="<?php echo $module->id; ?>"
+     data-wtyandexmapitems-module-id="<?php echo $module->id; ?>"
      data-item-id="<?php echo $input->getInt('Itemid'); ?>"
      style="width: <?php echo $params->get('map_width'); ?>; height: <?php echo $params->get('map_height'); ?>; margin: 0; padding: 0;"></div>
+    <?php if($use_overlay):?>
+    <div id="mod_wtyandexmapitems_overlay_<?php echo $module->id; ?>" style="position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.25);
+        z-index: 0;
+        cursor: pointer;"></div>
+    <?php endif; ?>
+</div>

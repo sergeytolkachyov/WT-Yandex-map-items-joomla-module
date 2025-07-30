@@ -1,6 +1,6 @@
 /**
  * @package       WT Yandex map items
- * @version    2.0.4
+ * @version    2.0.5
  * @author        Sergey Tolkachyov
  * @copyright  Copyright (c) 2022 - 2025 Sergey Tolkachyov. All rights reserved.
  * @license    GNU/GPL license: https://www.gnu.org/copyleft/gpl.html
@@ -106,6 +106,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 if (this._props.popup_framework === 'bootstrap')
                 {
+
                     this.popupContainer = document.querySelector(modalId + ' .modal-body');
                     this.popupHeader = document.querySelector(modalId + ' .modal-title');
                     this._marker.element.addEventListener('click', () => {
@@ -119,6 +120,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                     this.popupContainer = document.querySelector(modalId + ' .uk-modal-body');
                     this.popupHeader = document.querySelector(modalId + ' .uk-modal-title');
                     this._marker.element.setAttribute('uk-toggle', 'target: ' + modalId);
+                }
+
+                if(this._props.wtYandexMapItemsModuleParams.useOverlay) {
+                    let overlay = document.getElementById('mod_wtyandexmapitems_overlay_'+this._props.module_id);
+                    if (this._props.popup_framework === 'bootstrap') {
+                        const modalEl = document.querySelector(modalId);
+                        modalEl.addEventListener('hidden.bs.modal', (event) => {
+                            overlay.style.zIndex = -1;
+                        });
+                    } else if (this._props.popup_framework === 'uikit')
+                    {
+                        UIkit.util.on(modalId, 'hide', () => {
+                            overlay.style.zIndex = -1;
+                        });
+                    }
                 }
 
                 this._popup = document.createElement('ymaps');
@@ -172,8 +188,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                         const responseObj = JSON.parse(response);
                         const popupData = responseObj.data;
 
-                        console.log(popupData);
-
                         const template = document.getElementById(popupData.popup_layout_id);
 
                         if (markerInstance._props.is_popup_modal)
@@ -200,9 +214,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    document.querySelectorAll('[id^=mod_wtyandexmapitems]').forEach(mapHtmlObject => {
+    document.querySelectorAll('[data-wtyandexmapitems-module-id]').forEach(mapHtmlObject => {
         // Числовой id модуля карты
-        const module_id = parseInt(mapHtmlObject.getAttribute('data-module-id'));
+        const module_id = parseInt(mapHtmlObject.getAttribute('data-wtyandexmapitems-module-id'));
 
         // Числовой id текущего пункта меню
         const item_id = mapHtmlObject.getAttribute('data-item-id');
@@ -215,6 +229,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Максимальная высота всплывающего окна
         const popupMaxHeight = Math.min(mapHtmlObject.clientWidth, mapHtmlObject.clientHeight) - 60;
+
+        // Использовать ли оверлей
+        const useOverlay = mapData['useOverlay'];
 
         // Объект карты
         const map = new ymaps3.YMap(
@@ -242,6 +259,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         map.addChild(new ymaps3.YMapDefaultFeaturesLayer());
+        if (useOverlay) {
+            const overlay = document.getElementById('mod_wtyandexmapitems_overlay_'+module_id);
+            overlay.addEventListener('click',(e) => {
+                overlay.style.zIndex = -1;
+            });
+            mapHtmlObject.addEventListener('mouseleave',(e) => {
+                overlay.style.zIndex = 0;
+            });
+        }
 
         Joomla.request({
             url: window.location.origin + "/index.php?option=com_ajax&module=wtyandexmapitems&module_id=" + module_id + "&Itemid=" + item_id + "&format=raw",
@@ -250,7 +276,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (response !== "")
                 {
                     let responseJson = JSON.parse(response);
-                    console.log(responseJson);
 
                     if (!responseJson.success)
                     {
@@ -286,7 +311,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                             layout_data: feature,
                             is_popup_modal: isPopupModal,
                             popup_framework: popupFramework,
-                            popup: {maxHeight: popupMaxHeight, header: feature.item.title, content: 'default text', position: 'right'}
+                            popup: {maxHeight: popupMaxHeight, header: feature.item.title, content: 'default text', position: 'right'},
+                            wtYandexMapItemsModuleParams: {useOverlay: useOverlay}
                         });
                     }
 
