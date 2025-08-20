@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await ymaps3.ready;
     const {YMapDefaultMarker} = await ymaps3.import('@yandex/ymaps3-markers@0.0.1');
     const {YMapClusterer, clusterByGrid} = await ymaps3.import('@yandex/ymaps3-clusterer@0.0.1');
+    const {YMapListener} = ymaps3;
 
     let lastMarkerWithOpenedPopup = null;
     const k = 'ymaps3x0--default-marker__';
@@ -280,8 +281,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             mapHtmlObject,
             {
                 location: {
-                    center: backendModuleParams['center'],
-                    zoom: backendModuleParams['zoom']
+                    center: mapCenter,
+                    zoom: mapZoom
                 },
                 showScaleInCopyrights: true,
                 margin: [marginPx, marginPx, marginPx, marginPx]
@@ -421,6 +422,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             [maxLng, maxLat]
         ];
     }
+
     /**
      *
      * @param {object} params Params to save
@@ -443,6 +445,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     /**
+     * Get map params from local storage
      *
      * @param moduleId
      * @returns {any}

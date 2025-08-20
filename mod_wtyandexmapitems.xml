@@ -2,7 +2,7 @@
 <extension type="module" client="site" method="upgrade">
 	<name>MOD_WTYANDEXMAPITEMS</name>
 	<author>Sergey Tolkachyov</author>
-	<creationDate>19.08.2025</creationDate>
+	<creationDate>20.08.2025</creationDate>
 	<copyright>Copyright (c) 2022 - 2025 Sergey Tolkachyov. All rights reserved.</copyright>
 	<license>GNU General Public License version 3 or later</license>
 	<authorEmail>info@web-tolk.ru</authorEmail>
@@ -329,6 +329,7 @@
 						   name="map_zoom"
 						   label="MOD_WTYANDEXMAPITEMS_MAP_ZOOM"
 						   default="7"
+						   parentclass="stack span-2-inline"
 						   filter="integer">
 						<option value="0">0</option>
 						<option value="1">1</option>
@@ -356,6 +357,7 @@
 					<field type="list"
 						   name="map_type"
 						   label="MOD_WTYANDEXMAPITEMS_MAP_TYPE"
+						   parentclass="stack span-2-inline"
 						   default="scheme">
 						<option value="scheme">MOD_WTYANDEXMAPITEMS_MAP_TYPE_MAP</option>
 						<option value="satellite">MOD_WTYANDEXMAPITEMS_MAP_TYPE_SATELLITE</option>
@@ -365,13 +367,36 @@
 						   label="MOD_WTYANDEXMAPITEMS_MAP_WIDTH"
 						   description="MOD_WTYANDEXMAPITEMS_MAP_WIDTH_DESC"
 						   default="100%"
+						   parentclass="stack span-2-inline"
 					/>
 					<field type="text"
 						   name="map_height"
 						   label="MOD_WTYANDEXMAPITEMS_MAP_HEIGHT"
 						   description="MOD_WTYANDEXMAPITEMS_MAP_HEIGHT_DESC"
 						   default="350px"
+						   parentclass="stack span-2-inline"
 					/>
+				</fieldset>
+				<fieldset name="yandex_map_params_behavior" label="MOD_WTYANDEXMAPITEMS_YANDEX_MAP_PARAMS_BEHAVIOR_FIELDSET_LABEL">
+					<field name="detect_geolocation"
+						   type="radio"
+						   label="MOD_WTYANDEXMAPITEMS_YANDEX_MAP_PARAMS_BEHAVIOR_DETECT_GEOLOCATION"
+						   layout="joomla.form.field.radio.switcher"
+						   default="0"
+						   filter="integer">
+						<option value="0">JNO</option>
+						<option value="1">JYES</option>
+					</field>
+					<field name="save_camera"
+						   type="radio"
+						   label="MOD_WTYANDEXMAPITEMS_YANDEX_MAP_PARAMS_BEHAVIOR_SAVE_CAMERA"
+						   description="MOD_WTYANDEXMAPITEMS_YANDEX_MAP_PARAMS_BEHAVIOR_SAVE_CAMERA_DESC"
+						   class="btn-group"
+						   default="0">
+						<option value="0">JNO</option>
+						<option value="module">MOD_WTYANDEXMAPITEMS_YANDEX_MAP_PARAMS_BEHAVIOR_SAVE_CAMERA_MODULE</option>
+						<option value="general">MOD_WTYANDEXMAPITEMS_YANDEX_MAP_PARAMS_BEHAVIOR_SAVE_CAMERA_GENERAL</option>
+					</field>
 				</fieldset>
 			</fieldset>
 			<fieldset name="advanced">

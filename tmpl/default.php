@@ -77,11 +77,13 @@ foreach ($map_center_coords as &$coord)
 }
 $use_overlay = $params->get('use_overlay', false);
 $map_options = [
-	'zoom' => $params->get('map_zoom', 7),
-	'type' => $params->get('map_type', 'scheme'),
+    'zoom'               => $params->get('map_zoom', 7),
+    'type'               => $params->get('map_type', 'scheme'),
     // В API 3.0 формат координат изменился, теперь это "Долгота, Широта"
-	'center' => array_reverse($map_center_coords),
-    'useOverlay'=> $use_overlay,
+    'center'             => array_reverse($map_center_coords),
+    'useOverlay'         => $use_overlay,
+    'detect_geolocation' => $params->get('detect_geolocation', 0),
+    'save_camera'        => $params->get('save_camera', 0),
 ];
 
 $doc->addScriptOptions('mod_wtyandexmapitems' . $module->id, $map_options);
