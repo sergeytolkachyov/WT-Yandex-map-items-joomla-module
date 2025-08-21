@@ -23,6 +23,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         _createContainer()
         {
             const container = super._createContainer();
+            container.classList.add('wt-yandex-map-items-marker');
+            container.onclick = () => {
+                container.classList.add('wt-yandex-map-items-marker-viewed');
+            };
+
             const iconBox = container.querySelector('ymaps.' + k + 'icon-box');
 
             // Иконка маркера - изображение
@@ -377,6 +382,26 @@ document.addEventListener('DOMContentLoaded', async () => {
                     });
 
                     map.addChild(clusterer);
+
+                    // Центр карты на маркере из GET-параметров
+                    let marker_id = currentUrl.searchParams.get('map[marker_id]');
+                    if(marker_id && markers) {
+                        for (let i = 0; i < markers.length; i++) {
+                            if(markers[i]['id'] == marker_id) {
+                                console.log(markers[i]['geometry']);
+                                console.log(marker_id);
+                                map.update({
+                                    location: {
+                                        center: markers[i]['geometry']['coordinates'],
+                                        zoom: mapZoom,
+                                        easing: 'ease-in-out', duration: 250
+                                    }
+                                });
+                                break;
+                            }
+                        }
+                    }
+
                 }
             }
         });
