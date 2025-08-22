@@ -1,6 +1,6 @@
 /**
  * @package       WT Yandex map items
- * @version    2.1.0-alpha1
+ * @version    2.1.0
  * @author        Sergey Tolkachyov
  * @copyright  Copyright (c) 2022 - 2025 Sergey Tolkachyov. All rights reserved.
  * @license    GNU/GPL license: https://www.gnu.org/copyleft/gpl.html
@@ -17,16 +17,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     let lastMarkerWithOpenedPopup = null;
     const k = 'ymaps3x0--default-marker__';
 
-    /* кастомный класс маркера, основанный на YMapDefaultMarker */
+    /**
+     *  кастомный класс маркера, основанный на YMapDefaultMarker
+     */
     class YMapCustomMarker extends YMapDefaultMarker
     {
         _createContainer()
         {
             const container = super._createContainer();
+            // атрибут data-module-id для ymaps-контейнера
+            container.dataset.moduleId = this._props.module_id;
+            // атрибут data-marker-id для ymaps-контейнера
+            container.dataset.markerId = this._props.id;
             container.classList.add('wt-yandex-map-items-marker');
+            // CSS-класс для просмотренных маркеров
             container.onclick = () => {
                 container.classList.add('wt-yandex-map-items-marker-viewed');
             };
+            // Маркер определен как активный по GET-параметру map[marker_id]={marker_id}
+            if(this._props.isActive) {
+                container.classList.add('wt-yandex-map-items-marker-active');
+            }
 
             const iconBox = container.querySelector('ymaps.' + k + 'icon-box');
 
@@ -281,6 +292,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
+        const currentUrl = new URL(window.location);
+        let zoom = currentUrl.searchParams.get('map[zoom]');
+        if(zoom) {
+            mapZoom = parseInt(zoom);
+        }
+        let latitude = currentUrl.searchParams.get('map[center_latitude]');
+        let longitude = currentUrl.searchParams.get('map[center_longitude]');
+        if(latitude && longitude) {
+            mapCenter = [parseFloat(longitude), parseFloat(latitude)];
+        }
+
         // Объект карты
         const map = new ymaps3.YMap(
             mapHtmlObject,
@@ -346,7 +368,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                         feature.geometry.coordinates = feature.geometry.coordinates.reverse();
                     });
 
+                    let marker_id = currentUrl.searchParams.get('map[marker_id]');
+
                     const markerRender = (feature) => {
+                        let isActive = false;
+                        if(marker_id) {
+                            isActive = feature.id === parseInt(marker_id);
+                        }
+
                         return new YMapCustomMarker({
                             module_id: module_id,
                             item_id: item_id,
@@ -357,6 +386,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             marker_layout_id: feature.marker_layout_id,
                             has_popup: feature.has_popup,
                             layout_data: feature,
+                            isActive: isActive,
                             is_popup_modal: isPopupModal,
                             popup_framework: popupFramework,
                             popup: {maxHeight: popupMaxHeight, header: feature.item.title, content: 'default text', position: 'right'},
@@ -384,15 +414,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                     map.addChild(clusterer);
 
                     // Центр карты на маркере из GET-параметров
-                    let marker_id = currentUrl.searchParams.get('map[marker_id]');
+
                     if(marker_id && markers) {
-                        for (let i = 0; i < markers.length; i++) {
-                            if(markers[i]['id'] == marker_id) {
-                                console.log(markers[i]['geometry']);
-                                console.log(marker_id);
+                        const customZoom =  backendModuleParams['url_get_param_map_marker_id_custom_zoom'];
+                        if(customZoom && customZoom > 0) {
+                            mapZoom = customZoom;
+                        }
+                        for (const key in markers) {
+                            if(markers[key].id == marker_id) {
                                 map.update({
                                     location: {
-                                        center: markers[i]['geometry']['coordinates'],
+                                        center: markers[key].geometry.coordinates,
                                         zoom: mapZoom,
                                         easing: 'ease-in-out', duration: 250
                                     }

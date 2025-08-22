@@ -1,7 +1,7 @@
 <?php
 /**
  * @package       WT Yandex map items
- * @version    2.1.0-alpha1
+ * @version    2.1.0
  * @author        Sergey Tolkachyov
  * @copyright  Copyright (c) 2022 - 2025 Sergey Tolkachyov. All rights reserved.
  * @license    GNU/GPL license: https://www.gnu.org/copyleft/gpl.html
@@ -77,13 +77,14 @@ foreach ($map_center_coords as &$coord)
 }
 $use_overlay = $params->get('use_overlay', false);
 $map_options = [
-    'zoom'               => $params->get('map_zoom', 7),
-    'type'               => $params->get('map_type', 'scheme'),
+    'zoom'                                    => $params->get('map_zoom', 7),
+    'type'                                    => $params->get('map_type', 'scheme'),
     // В API 3.0 формат координат изменился, теперь это "Долгота, Широта"
-    'center'             => array_reverse($map_center_coords),
-    'useOverlay'         => $use_overlay,
-    'detect_geolocation' => $params->get('detect_geolocation', 0),
-    'save_camera'        => $params->get('save_camera', 0),
+    'center'                                  => array_reverse($map_center_coords),
+    'useOverlay'                              => $use_overlay,
+    'detect_geolocation'                      => $params->get('detect_geolocation', 0),
+    'save_camera'                             => $params->get('save_camera', 0),
+    'url_get_param_map_marker_id_custom_zoom' => $params->get('url_get_param_map_marker_id_custom_zoom', 0),
 ];
 
 $doc->addScriptOptions('mod_wtyandexmapitems' . $module->id, $map_options);
