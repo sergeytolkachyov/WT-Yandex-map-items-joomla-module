@@ -433,7 +433,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                             }
                         }
                     }
-
                 }
             }
         });

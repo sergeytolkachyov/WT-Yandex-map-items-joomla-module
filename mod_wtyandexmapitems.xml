@@ -2,7 +2,7 @@
 <extension type="module" client="site" method="upgrade">
 	<name>MOD_WTYANDEXMAPITEMS</name>
 	<author>Sergey Tolkachyov</author>
-	<creationDate>22.08.2025</creationDate>
+	<creationDate>23.08.2025</creationDate>
 	<copyright>Copyright (c) 2022 - 2025 Sergey Tolkachyov. All rights reserved.</copyright>
 	<license>GNU General Public License version 3 or later</license>
 	<authorEmail>info@web-tolk.ru</authorEmail>
