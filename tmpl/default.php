@@ -51,12 +51,12 @@ if (!$wa->assetExists('script','module.wtyandexmapitems.yandex') && !$wa->assetE
 $wa->registerAndUseScript('module.wtyandexmapitems.script', 'mod_wtyandexmapitems/script.js', [], ['defer' => true]);
 
 // Стиль для того, чтобы открытое всплывающее окно было поверх других маркеров
-$wa->addInlineStyle("
+$wa->addInlineStyle('
 ymaps.ymaps3x0--marker:has(> ymaps > ymaps.ymaps3x0--default-marker__popup:not(.ymaps3x0--default-marker__hider))
 {
     z-index: 1 !important;
 }
-");
+');
 
 $isPopupModal = $params->get('use_popup') === 'custom' && $params->get('popup_type') === 'modal';
 
