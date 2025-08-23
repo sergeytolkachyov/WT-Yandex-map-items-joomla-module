@@ -1,6 +1,6 @@
 /**
  * @package       WT Yandex map items
- * @version    2.0.5
+ * @version    2.1.0
  * @author        Sergey Tolkachyov
  * @copyright  Copyright (c) 2022 - 2025 Sergey Tolkachyov. All rights reserved.
  * @license    GNU/GPL license: https://www.gnu.org/copyleft/gpl.html
@@ -12,16 +12,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     await ymaps3.ready;
     const {YMapDefaultMarker} = await ymaps3.import('@yandex/ymaps3-markers@0.0.1');
     const {YMapClusterer, clusterByGrid} = await ymaps3.import('@yandex/ymaps3-clusterer@0.0.1');
+    const {YMapListener} = ymaps3;
 
     let lastMarkerWithOpenedPopup = null;
     const k = 'ymaps3x0--default-marker__';
 
-    /* кастомный класс маркера, основанный на YMapDefaultMarker */
+    /**
+     *  кастомный класс маркера, основанный на YMapDefaultMarker
+     */
     class YMapCustomMarker extends YMapDefaultMarker
     {
         _createContainer()
         {
             const container = super._createContainer();
+            // атрибут data-module-id для ymaps-контейнера
+            container.dataset.moduleId = this._props.module_id;
+            // атрибут data-marker-id для ymaps-контейнера
+            container.dataset.markerId = this._props.id;
+            container.classList.add('wt-yandex-map-items-marker');
+            // CSS-класс для просмотренных маркеров
+            container.onclick = () => {
+                container.classList.add('wt-yandex-map-items-marker-viewed');
+            };
+            // Маркер определен как активный по GET-параметру map[marker_id]={marker_id}
+            if(this._props.isActive) {
+                container.classList.add('wt-yandex-map-items-marker-active');
+            }
+
             const iconBox = container.querySelector('ymaps.' + k + 'icon-box');
 
             // Иконка маркера - изображение
@@ -215,6 +232,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     document.querySelectorAll('[data-wtyandexmapitems-module-id]').forEach(mapHtmlObject => {
+        initMap(mapHtmlObject);
+    });
+
+    /**
+     *
+     * @param mapHtmlObject
+     * @returns {Promise<void>}
+     */
+    async function initMap(mapHtmlObject){
         // Числовой id модуля карты
         const module_id = parseInt(mapHtmlObject.getAttribute('data-wtyandexmapitems-module-id'));
 
@@ -222,8 +248,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const item_id = mapHtmlObject.getAttribute('data-item-id');
 
         // Настройки карты
-        const mapData = Joomla.getOptions(mapHtmlObject.id);
-
+        const backendModuleParams = Joomla.getOptions(mapHtmlObject.id);
+        let frontendModuleParams;
         // Отступ карты - 25% от меньшей величины размеров карты
         const marginPx = Math.min(mapHtmlObject.clientWidth, mapHtmlObject.clientHeight) / 4;
 
@@ -231,15 +257,59 @@ document.addEventListener('DOMContentLoaded', async () => {
         const popupMaxHeight = Math.min(mapHtmlObject.clientWidth, mapHtmlObject.clientHeight) - 60;
 
         // Использовать ли оверлей
-        const useOverlay = mapData['useOverlay'];
+        const useOverlay = backendModuleParams['useOverlay'];
+        // Значения по умолчанию
+        let mapCenter = backendModuleParams['center'];
+        let mapZoom = backendModuleParams['zoom'];
+
+        /**
+         * 1. По умолчанию берем центр и зум из настроек модуля
+         * 2. Если включено - определеяем геопозицию пользователя. Если он разрешил и определилось - заменяем центр карты на позицию пользователя,
+         * 3. Если есть сохранённые параметры центра и зума в браузере - используем их.
+         */
+
+        if(backendModuleParams['detect_geolocation']){
+            mapCenter = await detectGeolocation();
+        }
+
+        if (backendModuleParams['save_camera']) {
+            switch (backendModuleParams['save_camera']) {
+                case 'module':
+                    frontendModuleParams = getParamsFromLocalStorage(module_id);
+                    break;
+                case 'general':
+                case 'default':
+                    frontendModuleParams = getParamsFromLocalStorage();
+                    break;
+            }
+            if(frontendModuleParams != null) {
+                if('center' in frontendModuleParams) {
+                    mapCenter = frontendModuleParams['center'];
+                }
+                if('zoom' in frontendModuleParams) {
+                    mapZoom = frontendModuleParams['zoom'];
+                }
+            }
+        }
+
+        const currentUrl = new URL(window.location);
+        let zoom = currentUrl.searchParams.get('map[zoom]');
+        if(zoom) {
+            mapZoom = parseInt(zoom);
+        }
+        let latitude = currentUrl.searchParams.get('map[center_latitude]');
+        let longitude = currentUrl.searchParams.get('map[center_longitude]');
+        if(latitude && longitude) {
+            mapCenter = [parseFloat(longitude), parseFloat(latitude)];
+        }
 
         // Объект карты
         const map = new ymaps3.YMap(
             mapHtmlObject,
             {
                 location: {
-                    center: mapData['center'],
-                    zoom: mapData['zoom']
+                    center: mapCenter,
+                    zoom: mapZoom
                 },
                 showScaleInCopyrights: true,
                 margin: [marginPx, marginPx, marginPx, marginPx]
@@ -247,7 +317,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         );
 
         // Добавляем слой на карту, в зависимости от указанного типа
-        switch (mapData['type'])
+        switch (backendModuleParams['type'])
         {
             case 'satellite':
                 map.addChild(new ymaps3.YMapDefaultSatelliteLayer());
@@ -298,7 +368,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                         feature.geometry.coordinates = feature.geometry.coordinates.reverse();
                     });
 
+                    let marker_id = currentUrl.searchParams.get('map[marker_id]');
+
                     const markerRender = (feature) => {
+                        let isActive = false;
+                        if(marker_id) {
+                            isActive = feature.id === parseInt(marker_id);
+                        }
+
                         return new YMapCustomMarker({
                             module_id: module_id,
                             item_id: item_id,
@@ -309,6 +386,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             marker_layout_id: feature.marker_layout_id,
                             has_popup: feature.has_popup,
                             layout_data: feature,
+                            isActive: isActive,
                             is_popup_modal: isPopupModal,
                             popup_framework: popupFramework,
                             popup: {maxHeight: popupMaxHeight, header: feature.item.title, content: 'default text', position: 'right'},
@@ -334,11 +412,42 @@ document.addEventListener('DOMContentLoaded', async () => {
                     });
 
                     map.addChild(clusterer);
+
+                    // Центр карты на маркере из GET-параметров
+
+                    if(marker_id && markers) {
+                        const customZoom =  backendModuleParams['url_get_param_map_marker_id_custom_zoom'];
+                        if(customZoom && customZoom > 0) {
+                            mapZoom = customZoom;
+                        }
+                        for (const key in markers) {
+                            if(markers[key].id == marker_id) {
+                                map.update({
+                                    location: {
+                                        center: markers[key].geometry.coordinates,
+                                        zoom: mapZoom,
+                                        easing: 'ease-in-out', duration: 250
+                                    }
+                                });
+                                break;
+                            }
+                        }
+                    }
                 }
             }
         });
-    });
-;
+
+        // Создание объекта-слушателя.
+        const mapListener = new YMapListener({
+            layer: 'any',
+            // Добавление обработчиков на слушатель.
+            onUpdate: ({type, camera, location})=>{
+                mapUpdateHandler({type, camera, location, module_id, mapOptions: backendModuleParams});
+            }
+        });
+
+        map.addChild(mapListener);
+    }
     function cluster(count)
     {
         const circle = document.createElement('div');
@@ -368,5 +477,78 @@ document.addEventListener('DOMContentLoaded', async () => {
             [minLng, minLat],
             [maxLng, maxLat]
         ];
+    }
+
+    /**
+     *
+     * @param {object} params Params to save
+     * @param {string} moduleId
+     */
+    function saveParamsToLocalStorage(params, moduleId = null) {
+        let dataModuleId = 'mod_wtyandexmapitems';
+        if (moduleId) {
+            dataModuleId += moduleId;
+        }
+
+        try {
+            let savedParams = JSON.parse(localStorage.getItem(dataModuleId));
+            savedParams = {...savedParams, ...params};
+            localStorage.setItem(dataModuleId, JSON.stringify(savedParams));
+        } catch (e) {
+            console.error(e.message);
+        }
+
+    }
+
+    /**
+     * Get map params from local storage
+     *
+     * @param moduleId
+     * @returns {any}
+     */
+    function getParamsFromLocalStorage(moduleId = null) {
+
+        let dataModuleId = 'mod_wtyandexmapitems';
+        if (moduleId) {
+            dataModuleId += moduleId;
+        }
+
+        try {
+            return JSON.parse(localStorage.getItem(dataModuleId));
+        } catch (e) {
+            console.error(e.message);
+            return null;
+        }
+    }
+
+    /**
+     * Обработчик события update Яндекс.карты.
+     *
+     * @param {string} type
+     * @param {YMapCamera} camera
+     * @param {YMapLocation} location
+     * @param {int} module_id
+     * @param {object} mapOptions
+     *
+     * @see https://yandex.ru/maps-api/docs/js-api/object/events/YMapListener.html#params
+     */
+    function mapUpdateHandler({type, camera, location, module_id, mapOptions}) {
+        const newParams = {
+            'center': location.center,
+            'zoom': location.zoom,
+        };
+        if(mapOptions['save_camera'] && mapOptions['save_camera'] === 'module') {
+            saveParamsToLocalStorage(newParams, module_id);
+        } else {
+            saveParamsToLocalStorage(newParams);
+        }
+    }
+
+    async function detectGeolocation(){
+        const position = await ymaps3.geolocation.getPosition();
+        if(position) {
+            mapCenter = position['coords'];
+            return mapCenter;
+        }
     }
 });

@@ -1,7 +1,7 @@
 <?php
 /**
  * @package       WT Yandex map items
- * @version    2.0.5
+ * @version    2.1.0
  * @author        Sergey Tolkachyov
  * @copyright  Copyright (c) 2022 - 2025 Sergey Tolkachyov. All rights reserved.
  * @license    GNU/GPL license: https://www.gnu.org/copyleft/gpl.html
@@ -15,7 +15,7 @@ use Joomla\Input\Input;
 use Joomla\Registry\Registry;
 
 // No direct access to this file
-defined('_JEXEC') or die;
+\defined('_JEXEC') or die;
 
 /**
  * @var stdClass $module The module instance
@@ -51,12 +51,12 @@ if (!$wa->assetExists('script','module.wtyandexmapitems.yandex') && !$wa->assetE
 $wa->registerAndUseScript('module.wtyandexmapitems.script', 'mod_wtyandexmapitems/script.js', [], ['defer' => true]);
 
 // Стиль для того, чтобы открытое всплывающее окно было поверх других маркеров
-$wa->addInlineStyle("
+$wa->addInlineStyle('
 ymaps.ymaps3x0--marker:has(> ymaps > ymaps.ymaps3x0--default-marker__popup:not(.ymaps3x0--default-marker__hider))
 {
     z-index: 1 !important;
 }
-");
+');
 
 $isPopupModal = $params->get('use_popup') === 'custom' && $params->get('popup_type') === 'modal';
 
@@ -77,11 +77,14 @@ foreach ($map_center_coords as &$coord)
 }
 $use_overlay = $params->get('use_overlay', false);
 $map_options = [
-	'zoom' => $params->get('map_zoom', 7),
-	'type' => $params->get('map_type', 'scheme'),
+    'zoom'                                    => $params->get('map_zoom', 7),
+    'type'                                    => $params->get('map_type', 'scheme'),
     // В API 3.0 формат координат изменился, теперь это "Долгота, Широта"
-	'center' => array_reverse($map_center_coords),
-    'useOverlay'=> $use_overlay,
+    'center'                                  => array_reverse($map_center_coords),
+    'useOverlay'                              => $use_overlay,
+    'detect_geolocation'                      => $params->get('detect_geolocation', 0),
+    'save_camera'                             => $params->get('save_camera', 0),
+    'url_get_param_map_marker_id_custom_zoom' => $params->get('url_get_param_map_marker_id_custom_zoom', 0),
 ];
 
 $doc->addScriptOptions('mod_wtyandexmapitems' . $module->id, $map_options);
@@ -121,7 +124,7 @@ if ($isPopupModal)
         left: 0;
         width: 100%;
         height: 100%;
-        background: rgba(0,0,0,0.25);
+        background: rgba(0,0,0,0.15);
         z-index: 0;
         cursor: pointer;"></div>
     <?php endif; ?>
