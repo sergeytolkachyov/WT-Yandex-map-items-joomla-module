@@ -16,7 +16,7 @@ use Joomla\Registry\Registry;
 use stdClass;
 
 // No direct access to this file
-defined('_JEXEC') or die;
+\defined('_JEXEC') or die;
 
 abstract class AbstractDriver
 {

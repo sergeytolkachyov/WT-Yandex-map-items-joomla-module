@@ -16,7 +16,7 @@ use Joomla\DI\Container;
 use Joomla\DI\ServiceProviderInterface;
 
 // No direct access to this file
-defined('_JEXEC') or die;
+\defined('_JEXEC') or die;
 
 /**
  * The "wt yandex map items" module service provider

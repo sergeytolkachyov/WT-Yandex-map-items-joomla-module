@@ -26,7 +26,7 @@ use Joomla\Filesystem\Folder;
 use Joomla\Filesystem\Path;
 
 // No direct access to this file
-defined('_JEXEC') or die;
+\defined('_JEXEC') or die;
 
 return new class () implements ServiceProviderInterface {
 

@@ -15,7 +15,7 @@ use Joomla\CMS\Dispatcher\AbstractModuleDispatcher;
 use Joomla\Module\Wtyandexmapitems\Site\Helper\WtyandexmapitemsHelper;
 
 // No direct access to this file
-defined('_JEXEC') or die;
+\defined('_JEXEC') or die;
 
 /**
  * Dispatcher class for "wt yandex map items" module

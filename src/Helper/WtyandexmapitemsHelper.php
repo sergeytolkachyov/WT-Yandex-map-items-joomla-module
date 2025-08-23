@@ -23,7 +23,7 @@ use Joomla\Registry\Registry;
 use Joomla\Module\Wtyandexmapitems\Site\Driver\DriverFactory;
 use stdClass;
 
-defined('_JEXEC') or die;
+\defined('_JEXEC') or die;
 
 /**
  * Helper class for "wt yandex map items" module

@@ -12,7 +12,7 @@
 use Joomla\CMS\HTML\Helpers\Bootstrap;
 
 // No direct access to this file
-defined('_JEXEC') or die;
+\defined('_JEXEC') or die;
 
 /**
  * @var stdClass $module The module instance

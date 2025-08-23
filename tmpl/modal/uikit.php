@@ -9,7 +9,7 @@
  * @since      2.0.0
  */
 
-defined('_JEXEC') or die;
+\defined('_JEXEC') or die;
 
 /**
  * @var stdClass $module The module instance
