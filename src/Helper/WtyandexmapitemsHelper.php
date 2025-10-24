@@ -1,7 +1,7 @@
 <?php
 /**
  * @package       WT Yandex map items
- * @version    2.1.0
+ * @version    2.1.1
  * @author        Sergey Tolkachyov
  * @copyright  Copyright (c) 2022 - 2025 Sergey Tolkachyov. All rights reserved.
  * @license    GNU/GPL license: https://www.gnu.org/copyleft/gpl.html
@@ -84,7 +84,8 @@ class WtyandexmapitemsHelper
      */
     public function getMarkers(Registry $params, CMSApplicationInterface $app): array
     {
-        return $this->getDriver($params->get('data_source', 'com_content.article'), $params, $app)->getItems();
+        $reset_cache = $app->getInput()->getBool('reset_cache', false);
+        return $this->getDriver($params->get('data_source', 'com_content.article'), $params, $app)->getItems($reset_cache);
     }
 
     /**

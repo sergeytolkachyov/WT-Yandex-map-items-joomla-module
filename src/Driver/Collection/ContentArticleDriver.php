@@ -1,7 +1,7 @@
 <?php
 /**
  * @package       WT Yandex map items
- * @version    2.1.0
+ * @version    2.1.1
  * @author        Sergey Tolkachyov
  * @copyright  Copyright (c) 2022 - 2025 Sergey Tolkachyov. All rights reserved.
  * @license    GNU/GPL license: https://www.gnu.org/copyleft/gpl.html
@@ -43,7 +43,7 @@ class ContentArticleDriver extends AbstractDriver
      *
      * @since 2.0.0
      */
-    public $context = 'com_content.article';
+    public string $context = 'com_content.article';
 
     /**
      * Module params
@@ -70,16 +70,18 @@ class ContentArticleDriver extends AbstractDriver
      *
      * @since 2.0.0
      */
-    private $fieldsCache = [];
+    private array $fieldsCache = [];
 
     /**
      * Get com_content articles with fields list as a Yandex map markers
+     *
+     * @param   bool  $reset_cache
      *
      * @return array
      *
      * @since 2.0.0
      */
-    public function getItems(): array
+    public function getItems(bool $reset_cache = false): array
     {
         $lifetime = 0;
 
@@ -104,7 +106,7 @@ class ContentArticleDriver extends AbstractDriver
 
         $cacheKey = $this->context . '_items' . $this->app->getInput()->get('module_id');
 
-        if ($cache->contains($cacheKey))
+        if ($cache->contains($cacheKey) && $reset_cache === false)
         {
             $items = $cache->get($cacheKey);
             $data['items'] = $items ?: [];
@@ -480,6 +482,7 @@ class ContentArticleDriver extends AbstractDriver
      */
     private function getArticles(Registry $params): mixed
     {
+        set_time_limit(0);
         $article_catid = $params->get('article_catid', []);
 
         /** @var ArticlesModel $model */
@@ -513,6 +516,8 @@ class ContentArticleDriver extends AbstractDriver
         $model->setState('filter.tag', $params->get('article_tag', []));
 
         $model->setState('filter.featured', 'show');
+        $model->setState('list.ordering', 'a.featured');
+        $model->setState('list.direction', 'DESC');
 
         // Check if we should trigger additional plugin events
         $triggerEvents = $params->get('article_triggerevents', 1);
