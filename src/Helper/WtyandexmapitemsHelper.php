@@ -84,8 +84,7 @@ class WtyandexmapitemsHelper
      */
     public function getMarkers(Registry $params, CMSApplicationInterface $app): array
     {
-        $reset_cache = $app->getInput()->getBool('reset_cache', false);
-        return $this->getDriver($params->get('data_source', 'com_content.article'), $params, $app)->getItems($reset_cache);
+        return $this->getDriver($params->get('data_source', 'com_content.article'), $params, $app)->getItems();
     }
 
     /**

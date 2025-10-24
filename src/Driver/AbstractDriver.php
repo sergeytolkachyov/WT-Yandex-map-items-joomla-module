@@ -66,11 +66,13 @@ abstract class AbstractDriver
 	/**
 	 * Get item data
 	 *
+     * @param bool $reset_cache Flag for cache rebuild
+     *
 	 * @return array Item data
      *
 	 * @since 2.0.0
 	 */
-	public function getItems(): array
+	public function getItems(bool $reset_cache = false): array
 	{
 		return [];
 	}
