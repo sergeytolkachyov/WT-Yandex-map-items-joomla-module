@@ -1,15 +1,16 @@
 <?php
 /**
  * @package       WT Yandex map items
- * @version    2.1.0
- * @author        Sergey Tolkachyov
- * @copyright  Copyright (c) 2022 - 2025 Sergey Tolkachyov. All rights reserved.
+ * @version    2.2.0
+ * @author     Sergey Tolkachyov
+ * @copyright  Copyright (c) 2022 - 2026 WebTolk, Sergey Tolkachyov. All rights reserved.
  * @license    GNU/GPL license: https://www.gnu.org/copyleft/gpl.html
  * @link          https://web-tolk.ru
  * @since      1.0.0
  */
 
 use Joomla\CMS\Application\CMSApplicationInterface;
+use Joomla\CMS\Filesystem\Path;
 use Joomla\CMS\Helper\ModuleHelper;
 use Joomla\Input\Input;
 use Joomla\Registry\Registry;
@@ -76,6 +77,38 @@ foreach ($map_center_coords as &$coord)
     $coord = (float)trim($coord);
 }
 $use_overlay = $params->get('use_overlay', false);
+$mapCustomization = null;
+$mapCustomizationFilePath = trim((string) $params->get('map_customization_file', ''));
+
+if ($mapCustomizationFilePath !== '')
+{
+    $relativeMapCustomizationFilePath = ltrim($mapCustomizationFilePath, '/\\');
+    $absoluteMapCustomizationFilePath = Path::clean(JPATH_ROOT . '/' . $relativeMapCustomizationFilePath);
+    $siteRootPath = Path::clean(JPATH_ROOT);
+
+    if (str_starts_with($absoluteMapCustomizationFilePath, $siteRootPath) && is_file($absoluteMapCustomizationFilePath))
+    {
+        try
+        {
+            $rawMapCustomization = file_get_contents($absoluteMapCustomizationFilePath);
+
+            if ($rawMapCustomization !== false)
+            {
+                $decodedMapCustomization = json_decode($rawMapCustomization, true, 512, JSON_THROW_ON_ERROR);
+
+                if (is_array($decodedMapCustomization))
+                {
+                    $mapCustomization = $decodedMapCustomization;
+                }
+            }
+        }
+        catch (\JsonException $e)
+        {
+            $mapCustomization = null;
+        }
+    }
+}
+
 $map_options = [
     'zoom'                                    => $params->get('map_zoom', 7),
     'type'                                    => $params->get('map_type', 'scheme'),
@@ -88,6 +121,11 @@ $map_options = [
 ];
 
 $doc->addScriptOptions('mod_wtyandexmapitems' . $module->id, $map_options);
+
+if ($mapCustomization !== null)
+{
+    $doc->addScriptOptions('mod_wtyandexmapitemsCustomizations', [(string) $module->id => $mapCustomization]);
+}
 
 foreach ($layouts as $id => $layout)
 {

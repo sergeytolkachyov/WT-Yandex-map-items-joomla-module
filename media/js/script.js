@@ -1,8 +1,8 @@
 /**
  * @package       WT Yandex map items
- * @version    2.1.0
- * @author        Sergey Tolkachyov
- * @copyright  Copyright (c) 2022 - 2025 Sergey Tolkachyov. All rights reserved.
+ * @version    2.2.0
+ * @author     Sergey Tolkachyov
+ * @copyright  Copyright (c) 2022 - 2026 WebTolk, Sergey Tolkachyov. All rights reserved.
  * @license    GNU/GPL license: https://www.gnu.org/copyleft/gpl.html
  * @link          https://web-tolk.ru
  * @since      1.0.0
@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const {YMapDefaultMarker} = await ymaps3.import('@yandex/ymaps3-markers@0.0.1');
     const {YMapClusterer, clusterByGrid} = await ymaps3.import('@yandex/ymaps3-clusterer@0.0.1');
     const {YMapListener} = ymaps3;
+    const storageKeyPrefix = 'mod_wtyandexmapitems';
 
     let lastMarkerWithOpenedPopup = null;
     const k = 'ymaps3x0--default-marker__';
@@ -160,7 +161,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const result = super._createPopup();
 
-            this.popupContainer = this._popup.querySelector(`.${k}popup-container`);
+            this.popupContainer =  this._popup.querySelector(`.${k}popup-container`) || this._popup.querySelector('[class*="popup-container"]') || this._popup;
             this._popup.style.alignItems = 'start';
 
             this.popupContainer.style.flex = '1 1 auto';
@@ -231,6 +232,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    function normalizeMapCustomization(customization) {
+        if (Array.isArray(customization)) {
+            return customization;
+        }
+
+        if (customization && typeof customization === 'object') {
+            return customization;
+        }
+
+        return null;
+    }
+
     document.querySelectorAll('[data-wtyandexmapitems-module-id]').forEach(mapHtmlObject => {
         initMap(mapHtmlObject);
     });
@@ -242,13 +255,14 @@ document.addEventListener('DOMContentLoaded', async () => {
      */
     async function initMap(mapHtmlObject){
         // Числовой id модуля карты
-        const module_id = parseInt(mapHtmlObject.getAttribute('data-wtyandexmapitems-module-id'));
+        const module_id = parseInt(mapHtmlObject.getAttribute('data-wtyandexmapitems-module-id'), 10);
 
         // Числовой id текущего пункта меню
         const item_id = mapHtmlObject.getAttribute('data-item-id');
 
         // Настройки карты
         const backendModuleParams = Joomla.getOptions(mapHtmlObject.id);
+        const mapCustomizations = Joomla.getOptions('mod_wtyandexmapitemsCustomizations') || {};
         let frontendModuleParams;
         // Отступ карты - 25% от меньшей величины размеров карты
         const marginPx = Math.min(mapHtmlObject.clientWidth, mapHtmlObject.clientHeight) / 4;
@@ -261,6 +275,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Значения по умолчанию
         let mapCenter = backendModuleParams['center'];
         let mapZoom = backendModuleParams['zoom'];
+        const mapCustomization = normalizeMapCustomization(mapCustomizations[module_id]);
 
         /**
          * 1. По умолчанию берем центр и зум из настроек модуля
@@ -311,6 +326,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     center: mapCenter,
                     zoom: mapZoom
                 },
+                mode: backendModuleParams['type'] === 'scheme' && mapCustomization ? 'vector' : 'automatic',
                 showScaleInCopyrights: true,
                 margin: [marginPx, marginPx, marginPx, marginPx]
             }
@@ -324,7 +340,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 break;
             case 'scheme':
             default:
-                map.addChild(new ymaps3.YMapDefaultSchemeLayer());
+                map.addChild(new ymaps3.YMapDefaultSchemeLayer(
+                    mapCustomization ? {customization: mapCustomization} : {}
+                ));
                 break;
         }
 
@@ -440,9 +458,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Создание объекта-слушателя.
         const mapListener = new YMapListener({
             layer: 'any',
-            // Добавление обработчиков на слушатель.
-            onUpdate: ({type, camera, location})=>{
-                mapUpdateHandler({type, camera, location, module_id, mapOptions: backendModuleParams});
+            onActionEnd: ({type, camera, location}) => {
+                mapActionEndHandler({type, camera, location, module_id, mapOptions: backendModuleParams});
             }
         });
 
@@ -484,16 +501,48 @@ document.addEventListener('DOMContentLoaded', async () => {
      * @param {object} params Params to save
      * @param {string} moduleId
      */
-    function saveParamsToLocalStorage(params, moduleId = null) {
-        let dataModuleId = 'mod_wtyandexmapitems';
-        if (moduleId) {
-            dataModuleId += moduleId;
+    function getStorageKey(moduleId = null) {
+        return moduleId ? storageKeyPrefix + moduleId : storageKeyPrefix;
+    }
+
+    function normalizeSavedMapParams(params) {
+        if (!params || typeof params !== 'object' || Array.isArray(params)) {
+            return null;
         }
 
+        const normalized = {};
+
+        if (Array.isArray(params.center) && params.center.length === 2) {
+            const longitude = Number(params.center[0]);
+            const latitude = Number(params.center[1]);
+
+            if (Number.isFinite(longitude) && Number.isFinite(latitude)) {
+                normalized.center = [longitude, latitude];
+            }
+        }
+
+        const zoom = Number(params.zoom);
+
+        if (Number.isFinite(zoom)) {
+            normalized.zoom = zoom;
+        }
+
+        return Object.keys(normalized).length > 0 ? normalized : null;
+    }
+
+    function saveParamsToLocalStorage(params, moduleId = null) {
+        const dataModuleId = getStorageKey(moduleId);
         try {
-            let savedParams = JSON.parse(localStorage.getItem(dataModuleId));
-            savedParams = {...savedParams, ...params};
-            localStorage.setItem(dataModuleId, JSON.stringify(savedParams));
+            const savedParams = normalizeSavedMapParams(JSON.parse(localStorage.getItem(dataModuleId))) || {};
+            const normalizedParams = normalizeSavedMapParams(params);
+
+            if (!normalizedParams) {
+                return;
+            }
+
+            const nextParams = {...savedParams, ...normalizedParams};
+
+            localStorage.setItem(dataModuleId, JSON.stringify(nextParams));
         } catch (e) {
             console.error(e.message);
         }
@@ -507,14 +556,10 @@ document.addEventListener('DOMContentLoaded', async () => {
      * @returns {any}
      */
     function getParamsFromLocalStorage(moduleId = null) {
-
-        let dataModuleId = 'mod_wtyandexmapitems';
-        if (moduleId) {
-            dataModuleId += moduleId;
-        }
+        const dataModuleId = getStorageKey(moduleId);
 
         try {
-            return JSON.parse(localStorage.getItem(dataModuleId));
+            return normalizeSavedMapParams(JSON.parse(localStorage.getItem(dataModuleId)));
         } catch (e) {
             console.error(e.message);
             return null;
@@ -522,7 +567,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     /**
-     * Обработчик события update Яндекс.карты.
+     * Сохраняем состояние карты только после завершения пользовательского действия.
+     * Это не даёт нескольким экземплярам модуля перетирать localStorage
+     * во время инициализации страницы или программных map.update().
      *
      * @param {string} type
      * @param {YMapCamera} camera
@@ -530,9 +577,9 @@ document.addEventListener('DOMContentLoaded', async () => {
      * @param {int} module_id
      * @param {object} mapOptions
      *
-     * @see https://yandex.ru/maps-api/docs/js-api/object/events/YMapListener.html#params
+     * @see https://yandex.com/maps-api/docs/js-api/dg/concepts/events.html
      */
-    function mapUpdateHandler({type, camera, location, module_id, mapOptions}) {
+    function mapActionEndHandler({type, camera, location, module_id, mapOptions}) {
         const newParams = {
             'center': location.center,
             'zoom': location.zoom,
