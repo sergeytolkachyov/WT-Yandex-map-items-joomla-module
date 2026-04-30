@@ -9,6 +9,17 @@ The coordinates must be specified in the user field separated by commas. The fie
 ## Plugin uses the Yandex API.Maps 3.0.
 The module has switched to using the Yandex.Maps API 3.0. You will need to get an API key in Yandex developer's account, and also, possibly, specify your domain in the key parameters.
 
+## Map customization
+The module supports custom map styling for the `Scheme` map type through the Yandex Map Style Editor.
+
+1. Create a style in the [Yandex Map Style Editor](https://yandex.com/maps-api/docs/map-style-editor/index.html).
+2. Export the result to a JSON file.
+3. Place this file inside your Joomla site, for example: `/media/mod_wtyandexmapitems/map-style.json`.
+4. In the module settings, specify this file in the `Path to map style JSON file` parameter.
+
+The module reads the JSON file and passes its contents to `YMapDefaultSchemeLayer.customization`.
+Yandex customization reference: https://yandex.com/maps-api/docs/js-api/map/customization.html
+
 ## Templating markers and pop-up window contents
 You can use the standard Yandex API layouts.Maps 3.0. for both map markers and pop-up windows. But you can also create your own output layouts for each category of articles and for each Joomla article.
 The parameters of the Joomla content take precedence over the parameters of the parent category. Layout paths are specified relative to the layouts folder and contain the dot symbol . instead of the slash /. For example, modules.mod_wtyandexmapitems.marker.city-marker. This approach allows you to use the Joomla redefinition mechanism and redefine layouts in your own template along the templates/[YOUR_TEMPLATE]/html/layouts/mod_wtyandexmapitems/marker/city-marker.php. To specify the marker template and/or the contents of the popup window, use a text field or a list field.
