@@ -1,6 +1,6 @@
 /**
  * @package       WT Yandex map items
- * @version    2.2.0
+ * @version    2.3.0
  * @author     Sergey Tolkachyov
  * @copyright  Copyright (c) 2022 - 2026 WebTolk, Sergey Tolkachyov. All rights reserved.
  * @license    GNU/GPL license: https://www.gnu.org/copyleft/gpl.html
@@ -14,9 +14,260 @@ document.addEventListener('DOMContentLoaded', async () => {
     const {YMapClusterer, clusterByGrid} = await ymaps3.import('@yandex/ymaps3-clusterer@0.0.1');
     const {YMapListener} = ymaps3;
     const storageKeyPrefix = 'mod_wtyandexmapitems';
+    let yandexDefaultUiThemePackage = null;
 
     let lastMarkerWithOpenedPopup = null;
     const k = 'ymaps3x0--default-marker__';
+
+    function getMarkerIconBox(container)
+    {
+        return container.querySelector('ymaps.' + k + 'icon-box')
+            || container.querySelector('[class$="icon-box"]')
+            || container.querySelector('[class*="icon-box"]')
+            || container;
+    }
+
+    function getPopupContainer(popup)
+    {
+        return popup.querySelector(`.${k}popup-container`)
+            || popup.querySelector('[class$="popup-container"]')
+            || popup.querySelector('[class*="popup-container"]')
+            || popup;
+    }
+
+    const openedPopupMarkerZIndex = '10000';
+
+    function getMarkerRoot(container)
+    {
+        return container ? container.closest('.ymaps3--marker') : null;
+    }
+
+    function setMarkerPopupZIndex(markerInstance, isOpened)
+    {
+        if (!markerInstance || !markerInstance._props || !markerInstance._props.has_popup || markerInstance._props.is_popup_modal)
+        {
+            return;
+        }
+
+        const markerRoot = getMarkerRoot(markerInstance._container);
+
+        if (!markerRoot)
+        {
+            return;
+        }
+
+        if (isOpened)
+        {
+            if (markerRoot.dataset.wtyandexmapitemsPopupZIndexRaised !== '1')
+            {
+                markerRoot.dataset.wtyandexmapitemsInitialZIndex = markerRoot.style.zIndex || '';
+                markerRoot.dataset.wtyandexmapitemsPopupZIndexRaised = '1';
+            }
+
+            markerRoot.style.zIndex = openedPopupMarkerZIndex;
+            return;
+        }
+
+        if (markerRoot.dataset.wtyandexmapitemsPopupZIndexRaised === '1')
+        {
+            markerRoot.style.zIndex = markerRoot.dataset.wtyandexmapitemsInitialZIndex || '';
+            delete markerRoot.dataset.wtyandexmapitemsInitialZIndex;
+            delete markerRoot.dataset.wtyandexmapitemsPopupZIndexRaised;
+        }
+    }
+
+    function getModuleOverlay(moduleId)
+    {
+        return document.getElementById('mod_wtyandexmapitems_overlay_' + moduleId);
+    }
+
+    async function getYandexDefaultUiThemePackage()
+    {
+        if (!yandexDefaultUiThemePackage)
+        {
+            if (ymaps3.import.registerCdn)
+            {
+                ymaps3.import.registerCdn('https://cdn.jsdelivr.net/npm/{package}', [
+                    '@yandex/ymaps3-default-ui-theme@0.0'
+                ]);
+            }
+
+            yandexDefaultUiThemePackage = ymaps3.import('@yandex/ymaps3-default-ui-theme').catch(error => {
+                console.warn('wtyandexmapitems [Warning]: Failed to load Yandex Maps default UI theme package.', error);
+
+                return {};
+            });
+        }
+
+        return yandexDefaultUiThemePackage;
+    }
+
+    function normalizeMapControls(controls)
+    {
+        if (!Array.isArray(controls))
+        {
+            return [];
+        }
+
+        return controls.filter(control => control && typeof control === 'object' && control.type);
+    }
+
+    function hasConfiguredScaleControl(controls)
+    {
+        return normalizeMapControls(controls).some(control => control.type === 'scale' && ymaps3.YMapScaleControl);
+    }
+
+    function createFullscreenControl(mapHtmlObject)
+    {
+        if (!ymaps3.YMapControlButton || !mapHtmlObject.requestFullscreen)
+        {
+            return null;
+        }
+
+        return new ymaps3.YMapControlButton({
+            text: '⛶',
+            onClick: () => {
+                if (document.fullscreenElement && document.exitFullscreen)
+                {
+                    document.exitFullscreen();
+                    return;
+                }
+
+                mapHtmlObject.requestFullscreen();
+            }
+        });
+    }
+
+    function mapControlNeedsDefaultUiThemePackage(controlConfig)
+    {
+        return ['zoom', 'search', 'geolocation', 'rotate', 'tilt', 'rotate_tilt'].includes(controlConfig.type);
+    }
+
+    function updateMapLocationBySearchResult(map, searchResult)
+    {
+        if (!Array.isArray(searchResult) || searchResult.length === 0)
+        {
+            return;
+        }
+
+        const coordinates = searchResult
+            .map(result => result && result.geometry ? result.geometry.coordinates : null)
+            .filter(item => Array.isArray(item) && item.length === 2);
+
+        if (coordinates.length === 0)
+        {
+            return;
+        }
+
+        if (coordinates.length === 1)
+        {
+            map.update({
+                location: {
+                    center: coordinates[0],
+                    zoom: 12,
+                    duration: 400
+                }
+            });
+
+            return;
+        }
+
+        map.update({
+            location: {
+                bounds: getBounds(coordinates),
+                duration: 400
+            }
+        });
+    }
+
+    function createConfiguredMapControl(controlConfig, map, mapHtmlObject, defaultUiThemePackage)
+    {
+        switch (controlConfig.type)
+        {
+            case 'zoom':
+                return defaultUiThemePackage.YMapZoomControl ? new defaultUiThemePackage.YMapZoomControl({}) : null;
+            case 'search':
+                return defaultUiThemePackage.YMapSearchControl
+                    ? new defaultUiThemePackage.YMapSearchControl({
+                        searchResult: searchResult => updateMapLocationBySearchResult(map, searchResult)
+                    })
+                    : null;
+            case 'fullscreen':
+                return createFullscreenControl(mapHtmlObject);
+            case 'geolocation':
+                return defaultUiThemePackage.YMapGeolocationControl ? new defaultUiThemePackage.YMapGeolocationControl({}) : null;
+            case 'scale':
+                return ymaps3.YMapScaleControl ? new ymaps3.YMapScaleControl({}) : null;
+            case 'rotate':
+                return defaultUiThemePackage.YMapRotateControl ? new defaultUiThemePackage.YMapRotateControl({}) : null;
+            case 'tilt':
+                return defaultUiThemePackage.YMapTiltControl ? new defaultUiThemePackage.YMapTiltControl({}) : null;
+            case 'rotate_tilt':
+                return defaultUiThemePackage.YMapRotateTiltControl ? new defaultUiThemePackage.YMapRotateTiltControl({}) : null;
+            default:
+                return null;
+        }
+    }
+
+    function getDefaultMapControlPosition(controlType)
+    {
+        switch (controlType)
+        {
+            case 'search':
+                return 'top';
+            case 'scale':
+                return 'bottom left';
+            case 'fullscreen':
+            case 'rotate':
+            case 'tilt':
+            case 'rotate_tilt':
+                return 'top right';
+            case 'zoom':
+            case 'geolocation':
+            default:
+                return 'right';
+        }
+    }
+
+    async function addConfiguredMapControls(map, mapHtmlObject, controls)
+    {
+        const normalizedControls = normalizeMapControls(controls);
+
+        if (normalizedControls.length === 0 || !ymaps3.YMapControls)
+        {
+            return;
+        }
+
+        const defaultUiThemePackage = normalizedControls.some(mapControlNeedsDefaultUiThemePackage)
+            ? await getYandexDefaultUiThemePackage()
+            : {};
+        const controlGroups = {};
+
+        normalizedControls.forEach(controlConfig => {
+            const control = createConfiguredMapControl(controlConfig, map, mapHtmlObject, defaultUiThemePackage);
+
+            if (!control)
+            {
+                return;
+            }
+
+            const position = typeof controlConfig.position === 'string' && controlConfig.position.trim()
+                ? controlConfig.position.trim()
+                : getDefaultMapControlPosition(controlConfig.type);
+            const groupKey = position;
+
+            if (!controlGroups[groupKey])
+            {
+                controlGroups[groupKey] = new ymaps3.YMapControls({position: position});
+            }
+
+            controlGroups[groupKey].addChild(control);
+        });
+
+        Object.keys(controlGroups).forEach(groupKey => {
+            map.addChild(controlGroups[groupKey]);
+        });
+    }
 
     /**
      *  кастомный класс маркера, основанный на YMapDefaultMarker
@@ -40,7 +291,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 container.classList.add('wt-yandex-map-items-marker-active');
             }
 
-            const iconBox = container.querySelector('ymaps.' + k + 'icon-box');
+            const iconBox = getMarkerIconBox(container);
 
             // Иконка маркера - изображение
             if (this._props.icon)
@@ -121,35 +372,45 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (this._props.is_popup_modal)
             {
                 const modalId = `#popup-modal-${this._props.module_id}`;
+                const modalEl = document.querySelector(modalId);
 
                 if (this._props.popup_framework === 'bootstrap')
                 {
 
-                    this.popupContainer = document.querySelector(modalId + ' .modal-body');
-                    this.popupHeader = document.querySelector(modalId + ' .modal-title');
+                    this.popupContainer = document.querySelector(modalId + ' [data-wtyandexmapitems-popup-body]')
+                        || document.querySelector(modalId + ' .modal-body');
+                    this.popupHeader = document.querySelector(modalId + ' [data-wtyandexmapitems-popup-title]')
+                        || document.querySelector(modalId + ' .modal-title');
                     this._marker.element.addEventListener('click', () => {
-                        const modalEl = document.querySelector(modalId);
-                        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-                        modal.show();
+                        if (modalEl && window.bootstrap && window.bootstrap.Modal)
+                        {
+                            const modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
+                            modal.show();
+                        }
                     });
                 }
                 else if (this._props.popup_framework === 'uikit')
                 {
-                    this.popupContainer = document.querySelector(modalId + ' .uk-modal-body');
-                    this.popupHeader = document.querySelector(modalId + ' .uk-modal-title');
-                    this._marker.element.setAttribute('uk-toggle', 'target: ' + modalId);
+                    this.popupContainer = document.querySelector(modalId + ' [data-wtyandexmapitems-popup-body]')
+                        || document.querySelector(modalId + ' .uk-modal-body');
+                    this.popupHeader = document.querySelector(modalId + ' [data-wtyandexmapitems-popup-title]')
+                        || document.querySelector(modalId + ' .uk-modal-title');
+
+                    if (modalEl)
+                    {
+                        this._marker.element.setAttribute('uk-toggle', 'target: ' + modalId);
+                    }
                 }
 
                 if(this._props.wtYandexMapItemsModuleParams.useOverlay) {
-                    let overlay = document.getElementById('mod_wtyandexmapitems_overlay_'+this._props.module_id);
-                    if (this._props.popup_framework === 'bootstrap') {
-                        const modalEl = document.querySelector(modalId);
+                    let overlay = getModuleOverlay(this._props.module_id);
+                    if (overlay && modalEl && this._props.popup_framework === 'bootstrap') {
                         modalEl.addEventListener('hidden.bs.modal', (event) => {
                             overlay.style.zIndex = -1;
                         });
-                    } else if (this._props.popup_framework === 'uikit')
+                    } else if (overlay && window.UIkit && window.UIkit.util && this._props.popup_framework === 'uikit')
                     {
-                        UIkit.util.on(modalId, 'hide', () => {
+                        window.UIkit.util.on(modalId, 'hide', () => {
                             overlay.style.zIndex = -1;
                         });
                     }
@@ -161,7 +422,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const result = super._createPopup();
 
-            this.popupContainer =  this._popup.querySelector(`.${k}popup-container`) || this._popup.querySelector('[class*="popup-container"]') || this._popup;
+            this.popupContainer = getPopupContainer(this._popup);
             this._popup.style.alignItems = 'start';
 
             this.popupContainer.style.flex = '1 1 auto';
@@ -188,7 +449,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             super._togglePopup(e);
 
-            if (e)
+            const isInlinePopupOpened = Boolean(this._props.has_popup && !this._props.is_popup_modal && this._popupIsOpen);
+
+            setMarkerPopupZIndex(this, isInlinePopupOpened);
+
+            if (!isInlinePopupOpened && lastMarkerWithOpenedPopup === this)
+            {
+                lastMarkerWithOpenedPopup = null;
+            }
+
+            if (e && isInlinePopupOpened)
             {
                 lastMarkerWithOpenedPopup = this;
             }
@@ -196,7 +466,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (e && this._props.has_popup)
             {
                 //this.popupTitle.classList.add('placeholder');
-                this.popupContainer.classList.add('placeholder');
+                if (this.popupContainer)
+                {
+                    this.popupContainer.classList.add('placeholder');
+                }
 
                 let markerInstance = this;
 
@@ -210,10 +483,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                         if (markerInstance._props.is_popup_modal)
                         {
-                            markerInstance.popupHeader.innerHTML = markerInstance._props.title;
+                            if (markerInstance.popupHeader)
+                            {
+                                markerInstance.popupHeader.innerHTML = markerInstance._props.title;
+                            }
                         }
 
-                        if (template && template.content)
+                        if (template && template.content && markerInstance.popupContainer)
                         {
                             //markerInstance.popupTitle.innerHTML = popupData.item.title;
                             //markerInstance.popupTitle.classList.remove('placeholder');
@@ -272,6 +548,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Использовать ли оверлей
         const useOverlay = backendModuleParams['useOverlay'];
+        const mapControls = backendModuleParams['controls'] || [];
+        const showScaleInCopyrights = !hasConfiguredScaleControl(mapControls);
         // Значения по умолчанию
         let mapCenter = backendModuleParams['center'];
         let mapZoom = backendModuleParams['zoom'];
@@ -327,7 +605,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     zoom: mapZoom
                 },
                 mode: backendModuleParams['type'] === 'scheme' && mapCustomization ? 'vector' : 'automatic',
-                showScaleInCopyrights: true,
+                showScaleInCopyrights: showScaleInCopyrights,
                 margin: [marginPx, marginPx, marginPx, marginPx]
             }
         );
@@ -347,14 +625,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         map.addChild(new ymaps3.YMapDefaultFeaturesLayer());
+        await addConfiguredMapControls(map, mapHtmlObject, mapControls);
+
         if (useOverlay) {
-            const overlay = document.getElementById('mod_wtyandexmapitems_overlay_'+module_id);
-            overlay.addEventListener('click',(e) => {
-                overlay.style.zIndex = -1;
-            });
-            mapHtmlObject.addEventListener('mouseleave',(e) => {
-                overlay.style.zIndex = 0;
-            });
+            const overlay = getModuleOverlay(module_id);
+            if (overlay)
+            {
+                overlay.addEventListener('click',(e) => {
+                    overlay.style.zIndex = -1;
+                });
+                mapHtmlObject.addEventListener('mouseleave',(e) => {
+                    overlay.style.zIndex = 0;
+                });
+            }
         }
 
         Joomla.request({

@@ -1,7 +1,7 @@
 <?php
 /**
  * @package       WT Yandex map items
- * @version    2.2.0
+ * @version    2.3.0
  * @author     Sergey Tolkachyov
  * @copyright  Copyright (c) 2022 - 2026 WebTolk, Sergey Tolkachyov. All rights reserved.
  * @license    GNU/GPL license: https://www.gnu.org/copyleft/gpl.html
@@ -51,14 +51,6 @@ if (!$wa->assetExists('script','module.wtyandexmapitems.yandex') && !$wa->assetE
 
 $wa->registerAndUseScript('module.wtyandexmapitems.script', 'mod_wtyandexmapitems/script.js', [], ['defer' => true]);
 
-// Стиль для того, чтобы открытое всплывающее окно было поверх других маркеров
-$wa->addInlineStyle('
-ymaps.ymaps3x0--marker:has(> ymaps > ymaps.ymaps3x0--default-marker__popup:not(.ymaps3x0--default-marker__hider))
-{
-    z-index: 1 !important;
-}
-');
-
 $isPopupModal = $params->get('use_popup') === 'custom' && $params->get('popup_type') === 'modal';
 
 if ($isPopupModal)
@@ -79,6 +71,42 @@ foreach ($map_center_coords as &$coord)
 $use_overlay = $params->get('use_overlay', false);
 $mapCustomization = null;
 $mapCustomizationFilePath = trim((string) $params->get('map_customization_file', ''));
+$mapControls = [];
+$allowedMapControlTypes = ['zoom', 'search', 'fullscreen', 'geolocation', 'scale', 'rotate', 'tilt', 'rotate_tilt'];
+$allowedMapControlPositionTokens = ['top', 'right', 'bottom', 'left', 'horizontal', 'vertical'];
+
+foreach ($allowedMapControlTypes as $controlType)
+{
+    if ((int) $params->get('map_control_' . $controlType, 0) !== 1)
+    {
+        continue;
+    }
+
+    $controlPosition = trim((string) $params->get('map_control_' . $controlType . '_position', ''));
+
+    if ($controlPosition !== '')
+    {
+        $controlPositionTokens = preg_split('/\s+/', strtolower($controlPosition), -1, PREG_SPLIT_NO_EMPTY);
+
+        if (
+            !is_array($controlPositionTokens)
+            || count($controlPositionTokens) > 3
+            || count(array_diff($controlPositionTokens, $allowedMapControlPositionTokens)) > 0
+        )
+        {
+            $controlPosition = '';
+        }
+        else
+        {
+            $controlPosition = implode(' ', $controlPositionTokens);
+        }
+    }
+
+    $mapControls[] = [
+        'type'     => $controlType,
+        'position' => $controlPosition,
+    ];
+}
 
 if ($mapCustomizationFilePath !== '')
 {
@@ -115,6 +143,7 @@ $map_options = [
     // В API 3.0 формат координат изменился, теперь это "Долгота, Широта"
     'center'                                  => array_reverse($map_center_coords),
     'useOverlay'                              => $use_overlay,
+    'controls'                                => $mapControls,
     'detect_geolocation'                      => $params->get('detect_geolocation', 0),
     'save_camera'                             => $params->get('save_camera', 0),
     'url_get_param_map_marker_id_custom_zoom' => $params->get('url_get_param_map_marker_id_custom_zoom', 0),
