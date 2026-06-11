@@ -24,5 +24,10 @@ Yandex customization reference: https://yandex.com/maps-api/docs/js-api/map/cust
 You can use the standard Yandex API layouts.Maps 3.0. for both map markers and pop-up windows. But you can also create your own output layouts for each category of articles and for each Joomla article.
 The parameters of the Joomla content take precedence over the parameters of the parent category. Layout paths are specified relative to the layouts folder and contain the dot symbol . instead of the slash /. For example, modules.mod_wtyandexmapitems.marker.city-marker. This approach allows you to use the Joomla redefinition mechanism and redefine layouts in your own template along the templates/[YOUR_TEMPLATE]/html/layouts/mod_wtyandexmapitems/marker/city-marker.php. To specify the marker template and/or the contents of the popup window, use a text field or a list field.
 
+You can also use the WT Layout Select custom field plugin to let editors choose available marker and popup layouts from a field instead of typing layout paths manually:
+
+- WT Layout Select documentation: https://web-tolk.ru/dev/joomla-plugins/wt-layout-select-joomla-custom-field-plugin
+- WT Layout Select changelog: https://web-tolk.ru/jchangelog?element=wtlayoutselect
+
 ## Large number of markers
 The module is optimized for displaying a large number of markers. You can display **several thousand markers** on a single map.

@@ -1,7 +1,7 @@
 <?php
 /**
  * @package       WT Yandex map items
- * @version    2.3.0
+ * @version    2.3.1
  * @author     Sergey Tolkachyov
  * @copyright  Copyright (c) 2022 - 2026 WebTolk, Sergey Tolkachyov. All rights reserved.
  * @license    GNU/GPL license: https://www.gnu.org/copyleft/gpl.html
@@ -19,8 +19,9 @@ use Joomla\CMS\Layout\FileLayout;
 use Joomla\CMS\Response\JsonResponse;
 use Joomla\Database\DatabaseInterface;
 use Joomla\Module\Wtyandexmapitems\Site\Driver\AbstractDriver;
-use Joomla\Registry\Registry;
 use Joomla\Module\Wtyandexmapitems\Site\Driver\DriverFactory;
+use Joomla\Module\Wtyandexmapitems\Site\Service\LayoutFieldValueResolver;
+use Joomla\Registry\Registry;
 use stdClass;
 
 \defined('_JEXEC') or die;
@@ -33,6 +34,8 @@ use stdClass;
 class WtyandexmapitemsHelper
 {
     private AbstractDriver $driverInstance;
+
+    private ?LayoutFieldValueResolver $layoutFieldValueResolver = null;
 
     /**
      * Function is called by ajax request
@@ -170,15 +173,29 @@ class WtyandexmapitemsHelper
         /** @var DatabaseQuery $query */
         $query = $db->getQuery(true);
         $query
-            ->select('DISTINCT ' . $db->quoteName('value'))
-            ->from($db->quoteName('#__fields_values'))
-            ->where($db->quoteName('field_id') . ' IN(' . implode(',', $fieldIds) . ')');
+            ->select([
+                'DISTINCT ' . $db->quoteName('fv.field_id'),
+                $db->quoteName('f.type'),
+                $db->quoteName('fv.value'),
+            ])
+            ->from($db->quoteName('#__fields_values', 'fv'))
+            ->join('INNER', $db->quoteName('#__fields', 'f') . ' ON ' . $db->quoteName('f.id') . ' = ' . $db->quoteName('fv.field_id'))
+            ->where($db->quoteName('fv.field_id') . ' IN(' . implode(',', array_map('intval', $fieldIds)) . ')')
+            ->where($db->quoteName('fv.value') . ' IS NOT NULL')
+            ->where($db->quoteName('fv.value') . ' != ' . $db->quote(''));
 
         $layoutNames = $db->setQuery($query)->loadObjectList();
 
         foreach ($layoutNames as $layoutName)
         {
-            $layout = new FileLayout($layoutName->value);
+            $layoutId = $this->getLayoutFieldValueResolver()->resolveFromRawValue((string) $layoutName->type, $layoutName->value);
+
+            if ($layoutId === '')
+            {
+                continue;
+            }
+
+            $layout = new FileLayout($layoutId);
             $layouts[$layout->getLayoutId()] = $layout->render(['params' => $params]);
         }
 
@@ -213,6 +230,23 @@ class WtyandexmapitemsHelper
         }
 
         return $this->driverInstance;
+    }
+
+    /**
+     * Get the layout field value resolver.
+     *
+     * @return LayoutFieldValueResolver
+     *
+     * @since 2.3.0
+     */
+    private function getLayoutFieldValueResolver(): LayoutFieldValueResolver
+    {
+        if ($this->layoutFieldValueResolver === null)
+        {
+            $this->layoutFieldValueResolver = new LayoutFieldValueResolver();
+        }
+
+        return $this->layoutFieldValueResolver;
     }
 
 }

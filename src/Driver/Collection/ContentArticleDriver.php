@@ -1,7 +1,7 @@
 <?php
 /**
  * @package       WT Yandex map items
- * @version    2.3.0
+ * @version    2.3.1
  * @author     Sergey Tolkachyov
  * @copyright  Copyright (c) 2022 - 2026 WebTolk, Sergey Tolkachyov. All rights reserved.
  * @license    GNU/GPL license: https://www.gnu.org/copyleft/gpl.html
@@ -28,6 +28,7 @@ use Joomla\Component\Content\Site\Model\ArticlesModel;
 use Joomla\Component\Fields\Administrator\Helper\FieldsHelper;
 use Joomla\Component\Fields\Administrator\Model\FieldModel;
 use Joomla\Module\Wtyandexmapitems\Site\Driver\AbstractDriver;
+use Joomla\Module\Wtyandexmapitems\Site\Service\LayoutFieldValueResolver;
 use Joomla\Registry\Registry;
 use stdClass;
 
@@ -71,6 +72,15 @@ class ContentArticleDriver extends AbstractDriver
      * @since 2.0.0
      */
     private $fieldsCache = [];
+
+    /**
+     * Layout field value resolver.
+     *
+     * @var LayoutFieldValueResolver|null
+     *
+     * @since 2.3.0
+     */
+    private ?LayoutFieldValueResolver $layoutFieldValueResolver = null;
 
     /**
      * Get com_content articles with fields list as a Yandex map markers
@@ -571,9 +581,10 @@ class ContentArticleDriver extends AbstractDriver
                     && $field->id == $params->get('category_marker_view_layout_field_id')
                 )
                 {
-                    if ($field->rawvalue)
+                    $marker_layout_id = $this->getLayoutFieldValueResolver()->resolveFromField($field);
+
+                    if ($marker_layout_id !== '')
                     {
-                        $marker_layout_id = is_array($field->rawvalue) ? $field->rawvalue[0] : trim($field->rawvalue);
                         $category_marker_layout_ids[$category_id] = $marker_layout_id;
                     }
                 }
@@ -726,9 +737,11 @@ class ContentArticleDriver extends AbstractDriver
                     && $field->id == $params->get('article_marker_view_layout_field_id')
                 )
                 {
-                    if ($field->rawvalue)
+                    $marker_layout_id = $this->getLayoutFieldValueResolver()->resolveFromField($field);
+
+                    if ($marker_layout_id !== '')
                     {
-                        $item->marker_layout_id = $field->rawvalue;
+                        $item->marker_layout_id = $marker_layout_id;
                     }
                 }
                 // Ищем поле типа text - есть ли popup макета
@@ -810,9 +823,10 @@ class ContentArticleDriver extends AbstractDriver
             foreach ($category_fields as $field)
             {
                 // Ищем поле типа text - id макета popup
-                if ($field->id == (int)$params->get('category_popup_view_layout_field_id') && !empty($field->rawvalue))
+                if ($field->id == (int)$params->get('category_popup_view_layout_field_id'))
                 {
-                    $popup_layout_id = is_array($field->rawvalue) ? $field->rawvalue[0] : trim($field->rawvalue);
+                    $popup_layout_id = $this->getLayoutFieldValueResolver()->resolveFromField($field);
+
                     if(!empty($popup_layout_id)) {
                         $popupData->popup_layout_id = $popup_layout_id;
                     }
@@ -830,9 +844,10 @@ class ContentArticleDriver extends AbstractDriver
             if ($params->get('use_popup') === 'custom'
                 && $params->get('article_popup_view') === 'layout'
                 && $field->id == $params->get('article_popup_view_layout_field_id')
-                && !empty($field->rawvalue))
+            )
             {
-                $popup_layout_id = is_array($field->rawvalue) ? $field->rawvalue[0] : trim($field->rawvalue);
+                $popup_layout_id = $this->getLayoutFieldValueResolver()->resolveFromField($field);
+
                 if(!empty($popup_layout_id)) {
                     $popupData->popup_layout_id = $popup_layout_id;
                 }
@@ -845,5 +860,22 @@ class ContentArticleDriver extends AbstractDriver
         unset($popupData->itemOriginal);
 
         return $popupData;
+    }
+
+    /**
+     * Get the layout field value resolver.
+     *
+     * @return LayoutFieldValueResolver
+     *
+     * @since 2.3.0
+     */
+    private function getLayoutFieldValueResolver(): LayoutFieldValueResolver
+    {
+        if ($this->layoutFieldValueResolver === null)
+        {
+            $this->layoutFieldValueResolver = new LayoutFieldValueResolver();
+        }
+
+        return $this->layoutFieldValueResolver;
     }
 }
