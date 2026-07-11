@@ -1,7 +1,7 @@
 <?php
 /**
  * @package       WT Yandex map items
- * @version    2.3.1
+ * @version    2.3.2
  * @author     Sergey Tolkachyov
  * @copyright  Copyright (c) 2022 - 2026 WebTolk, Sergey Tolkachyov. All rights reserved.
  * @license    GNU/GPL license: https://www.gnu.org/copyleft/gpl.html
@@ -542,8 +542,17 @@ class ContentArticleDriver extends AbstractDriver
         $category_marker_layout_ids = [];
         $category_has_popup_layout = [];
 
+        $category_ids = array_map('intval', (array)$article_catid);
+
+        foreach ($items as $item)
+        {
+            $category_ids[] = (int)($item->catid ?? 0);
+        }
+
+        $category_ids = array_values(array_unique(array_filter($category_ids)));
+
         // Поиск поля макета или иконки в полях категорий
-        foreach ($article_catid as $category_id)
+        foreach ($category_ids as $category_id)
         {
             try
             {
