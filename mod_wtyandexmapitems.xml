@@ -309,9 +309,21 @@
 					<field name="use_cluster"
 						   type="radio"
 						   label="MOD_WTYANDEXMAPITEMS_USE_CLUSTER"
+						   description="MOD_WTYANDEXMAPITEMS_USE_CLUSTER_DESC"
 						   layout="joomla.form.field.radio.switcher"
 						   default="1"
 						   filter="integer">
+						<option value="0">JNO</option>
+						<option value="1">JYES</option>
+					</field>
+					<field name="cluster_show_count"
+						   type="radio"
+						   label="MOD_WTYANDEXMAPITEMS_CLUSTER_SHOW_COUNT"
+						   description="MOD_WTYANDEXMAPITEMS_CLUSTER_SHOW_COUNT_DESC"
+						   layout="joomla.form.field.radio.switcher"
+						   default="1"
+						   filter="integer"
+						   showon="use_cluster:1">
 						<option value="0">JNO</option>
 						<option value="1">JYES</option>
 					</field>
@@ -327,6 +339,7 @@
 					<field name="cluster_marker_view"
 						   type="radio"
 						   label="MOD_WTYANDEXMAPITEMS_CLUSTER_MARKER_VIEW"
+						   description="MOD_WTYANDEXMAPITEMS_CLUSTER_MARKER_VIEW_DESC"
 						   default="default"
 						   class="btn-group"
 						   showon="use_cluster:1">
@@ -336,6 +349,7 @@
 					<field name="cluster_marker_image"
 						   type="media"
 						   label="MOD_WTYANDEXMAPITEMS_CLUSTER_MARKER_IMAGE"
+						   description="MOD_WTYANDEXMAPITEMS_CLUSTER_MARKER_IMAGE_DESC"
 						   preview="true"
 						   showon="use_cluster:1[AND]cluster_marker_view:image"
 					/>

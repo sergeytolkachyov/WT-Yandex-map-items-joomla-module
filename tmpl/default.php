@@ -148,6 +148,7 @@ $map_options = [
     'cluster'                                 => [
         'enabled'     => (int) $params->get('use_cluster', 1) === 1,
         'gridSize'    => max(1, (int) $params->get('cluster_grid_size', 64)),
+        'showCount'   => (int) $params->get('cluster_show_count', 1) === 1,
         'markerView'  => $params->get('cluster_marker_view', 'default') === 'image' ? 'image' : 'default',
         'markerImage' => $clusterMarkerImage,
     ],

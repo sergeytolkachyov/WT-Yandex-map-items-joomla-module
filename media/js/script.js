@@ -190,6 +190,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         return {
             enabled: normalizedOptions.enabled !== false,
             gridSize: Number.isFinite(gridSize) && gridSize > 0 ? gridSize : 64,
+            showCount: normalizedOptions.showCount !== false,
             markerView: markerView,
             markerImage: typeof normalizedOptions.markerImage === 'string' ? normalizedOptions.markerImage.trim() : ''
         };
@@ -829,13 +830,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     function cluster(count, clusterOptions)
     {
         const circle = document.createElement('div');
-        const text = document.createElement('span');
 
         circle.classList.add('circle');
         circle.style = 'cursor:pointer;width:48px;height:48px;background-color:rgb(255, 51, 51);border-radius:50%;transform:translate(-50%,-50%);display:flex;justify-content:center;align-items:center;position:relative;overflow:hidden;';
-        text.classList.add('circle-text');
-        text.style = 'color:white;font-size:1.5rem;position:relative;z-index:1;';
-        text.textContent = count;
 
         if (clusterOptions && clusterOptions.markerView === 'image' && clusterOptions.markerImage)
         {
@@ -848,7 +845,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             circle.appendChild(image);
         }
 
-        circle.appendChild(text);
+        if (!clusterOptions || clusterOptions.showCount)
+        {
+            const text = document.createElement('span');
+            text.classList.add('circle-text');
+            text.style = 'color:white;font-size:1.5rem;position:relative;z-index:1;';
+            text.textContent = count;
+            circle.appendChild(text);
+        }
 
         return circle;
     }
