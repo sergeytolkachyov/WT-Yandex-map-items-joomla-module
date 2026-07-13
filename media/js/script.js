@@ -11,7 +11,6 @@
 document.addEventListener('DOMContentLoaded', async () => {
     await ymaps3.ready;
     const {YMapDefaultMarker} = await ymaps3.import('@yandex/ymaps3-markers@0.0.1');
-    const {YMapClusterer, clusterByGrid} = await ymaps3.import('@yandex/ymaps3-clusterer@0.0.1');
     const {YMapListener} = ymaps3;
     const storageKeyPrefix = 'mod_wtyandexmapitems';
     let yandexDefaultUiThemePackage = null;
@@ -180,6 +179,35 @@ document.addEventListener('DOMContentLoaded', async () => {
                 duration: 400
             }
         });
+    }
+
+    function normalizeClusterOptions(options)
+    {
+        const normalizedOptions = options && typeof options === 'object' ? options : {};
+        const gridSize = parseInt(normalizedOptions.gridSize, 10);
+        const markerView = normalizedOptions.markerView === 'image' ? 'image' : 'default';
+
+        return {
+            enabled: normalizedOptions.enabled !== false,
+            gridSize: Number.isFinite(gridSize) && gridSize > 0 ? gridSize : 64,
+            markerView: markerView,
+            markerImage: typeof normalizedOptions.markerImage === 'string' ? normalizedOptions.markerImage.trim() : ''
+        };
+    }
+
+    function normalizeRelativeImagePath(path)
+    {
+        if (!path)
+        {
+            return '';
+        }
+
+        if (/^(?:https?:)?\/\//i.test(path) || path.startsWith('data:'))
+        {
+            return path;
+        }
+
+        return '/' + path.replace(/^\/+/, '');
     }
 
     function createConfiguredMapControl(controlConfig, map, mapHtmlObject, defaultUiThemePackage)
@@ -588,6 +616,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Использовать ли оверлей
         const useOverlay = backendModuleParams['useOverlay'];
         const mapControls = backendModuleParams['controls'] || [];
+        const clusterOptions = normalizeClusterOptions(backendModuleParams['cluster']);
         const showScaleInCopyrights = !hasConfiguredScaleControl(mapControls);
         // Значения по умолчанию
         let mapCenter = backendModuleParams['center'];
@@ -681,7 +710,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         Joomla.request({
             url: window.location.origin + "/index.php?option=com_ajax&module=wtyandexmapitems&module_id=" + module_id + "&Itemid=" + item_id + "&format=raw",
-            onSuccess: function (response, xhr)
+            onSuccess: async function (response, xhr)
             {
                 if (response !== "")
                 {
@@ -741,17 +770,27 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 const bounds = getBounds(features.map(feature => feature.geometry.coordinates));
                                 map.update({location: {bounds: bounds, easing: 'ease-in-out', duration: 250}});
                             }
-                        }, cluster(features.length).cloneNode(true));
+                        }, cluster(features.length, clusterOptions).cloneNode(true));
                     }
 
-                    const clusterer = new YMapClusterer({
-                        method: clusterByGrid({ gridSize: 64 }),
-                        features: markers,
-                        marker: markerRender,
-                        cluster: clusterRender
-                    });
+                    if (clusterOptions.enabled)
+                    {
+                        const {YMapClusterer, clusterByGrid} = await ymaps3.import('@yandex/ymaps3-clusterer@0.0.1');
+                        const clusterer = new YMapClusterer({
+                            method: clusterByGrid({ gridSize: clusterOptions.gridSize }),
+                            features: markers,
+                            marker: markerRender,
+                            cluster: clusterRender
+                        });
 
-                    map.addChild(clusterer);
+                        map.addChild(clusterer);
+                    }
+                    else
+                    {
+                        markers.forEach(feature => {
+                            map.addChild(markerRender(feature));
+                        });
+                    }
 
                     // Центр карты на маркере из GET-параметров
 
@@ -787,12 +826,30 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         map.addChild(mapListener);
     }
-    function cluster(count)
+    function cluster(count, clusterOptions)
     {
         const circle = document.createElement('div');
+        const text = document.createElement('span');
+
         circle.classList.add('circle');
-        circle.style = "cursor:pointer;width:48px;height:48px;background-color:rgb(255, 51, 51);border-radius:50%;transform:translate(-50%,-50%);display:flex;justify-content:center;align-items:center;";
-        circle.innerHTML = `<span style="color:white;font-size:1.5rem" class="circle-text">${count}</span>`;
+        circle.style = 'cursor:pointer;width:48px;height:48px;background-color:rgb(255, 51, 51);border-radius:50%;transform:translate(-50%,-50%);display:flex;justify-content:center;align-items:center;position:relative;overflow:hidden;';
+        text.classList.add('circle-text');
+        text.style = 'color:white;font-size:1.5rem;position:relative;z-index:1;';
+        text.textContent = count;
+
+        if (clusterOptions && clusterOptions.markerView === 'image' && clusterOptions.markerImage)
+        {
+            const image = document.createElement('img');
+            image.src = normalizeRelativeImagePath(clusterOptions.markerImage);
+            image.alt = '';
+            image.style = 'position:absolute;inset:0;width:100%;height:100%;object-fit:contain;';
+            circle.style.backgroundColor = 'transparent';
+            circle.style.borderRadius = '0';
+            circle.appendChild(image);
+        }
+
+        circle.appendChild(text);
+
         return circle;
     }
 

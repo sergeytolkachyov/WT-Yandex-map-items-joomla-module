@@ -303,6 +303,43 @@
 						   showon="use_popup:custom[AND]article_popup_view:layout"
 					/>
 				</fieldset>
+				<fieldset name="display_params_cluster"
+						  label="MOD_WTYANDEXMAPITEMS_DISPLAY_PARAMS_CLUSTER"
+						  description="MOD_WTYANDEXMAPITEMS_DISPLAY_PARAMS_CLUSTER_DESC">
+					<field name="use_cluster"
+						   type="radio"
+						   label="MOD_WTYANDEXMAPITEMS_USE_CLUSTER"
+						   layout="joomla.form.field.radio.switcher"
+						   default="1"
+						   filter="integer">
+						<option value="0">JNO</option>
+						<option value="1">JYES</option>
+					</field>
+					<field name="cluster_grid_size"
+						   type="number"
+						   label="MOD_WTYANDEXMAPITEMS_CLUSTER_GRID_SIZE"
+						   description="MOD_WTYANDEXMAPITEMS_CLUSTER_GRID_SIZE_DESC"
+						   default="64"
+						   min="1"
+						   filter="integer"
+						   showon="use_cluster:1"
+					/>
+					<field name="cluster_marker_view"
+						   type="radio"
+						   label="MOD_WTYANDEXMAPITEMS_CLUSTER_MARKER_VIEW"
+						   default="default"
+						   class="btn-group"
+						   showon="use_cluster:1">
+						<option value="default">MOD_WTYANDEXMAPITEMS_DEFAULT</option>
+						<option value="image">MOD_WTYANDEXMAPITEMS_VIEW_MEDIA</option>
+					</field>
+					<field name="cluster_marker_image"
+						   type="media"
+						   label="MOD_WTYANDEXMAPITEMS_CLUSTER_MARKER_IMAGE"
+						   preview="true"
+						   showon="use_cluster:1[AND]cluster_marker_view:image"
+					/>
+				</fieldset>
 				<fieldset name="display_params_module" label="MOD_WTYANDEXMAPITEMS_DISPLAY_PARAMS_MODULE"
 						  description="MOD_WTYANDEXMAPITEMS_DISPLAY_PARAMS_MODULE_DESC">
 					<field name="use_overlay"

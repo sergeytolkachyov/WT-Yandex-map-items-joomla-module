@@ -69,6 +69,7 @@ foreach ($map_center_coords as &$coord)
     $coord = (float)trim($coord);
 }
 $use_overlay = $params->get('use_overlay', false);
+$clusterMarkerImage = trim((string) $params->get('cluster_marker_image', ''));
 $mapCustomization = null;
 $mapCustomizationFilePath = trim((string) $params->get('map_customization_file', ''));
 $mapControls = [];
@@ -144,6 +145,12 @@ $map_options = [
     'center'                                  => array_reverse($map_center_coords),
     'useOverlay'                              => $use_overlay,
     'controls'                                => $mapControls,
+    'cluster'                                 => [
+        'enabled'     => (int) $params->get('use_cluster', 1) === 1,
+        'gridSize'    => max(1, (int) $params->get('cluster_grid_size', 64)),
+        'markerView'  => $params->get('cluster_marker_view', 'default') === 'image' ? 'image' : 'default',
+        'markerImage' => $clusterMarkerImage,
+    ],
     'detect_geolocation'                      => $params->get('detect_geolocation', 0),
     'save_camera'                             => $params->get('save_camera', 0),
     'url_get_param_map_marker_id_custom_zoom' => $params->get('url_get_param_map_marker_id_custom_zoom', 0),
