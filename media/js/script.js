@@ -17,6 +17,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     let yandexDefaultUiThemePackage = null;
 
     let lastMarkerWithOpenedPopup = null;
+    let popupRequestSequence = 0;
+    const latestPopupRequestByModule = new Map();
     const k = 'ymaps3x0--default-marker__';
 
     function getMarkerIconBox(container)
@@ -382,6 +384,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                     this.popupHeader = document.querySelector(modalId + ' [data-wtyandexmapitems-popup-title]')
                         || document.querySelector(modalId + ' .modal-title');
                     this._marker.element.addEventListener('click', () => {
+                        if (this.popupHeader)
+                        {
+                            this.popupHeader.innerHTML = this._props.title;
+                        }
+
+                        if (this.popupContainer)
+                        {
+                            this.popupContainer.innerHTML = '';
+                            this.popupContainer.classList.add('placeholder');
+                        }
+
                         if (modalEl && window.bootstrap && window.bootstrap.Modal)
                         {
                             const modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
@@ -398,6 +411,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                     if (modalEl)
                     {
+                        this._marker.element.addEventListener('click', () => {
+                            if (this.popupHeader)
+                            {
+                                this.popupHeader.innerHTML = this._props.title;
+                            }
+
+                            if (this.popupContainer)
+                            {
+                                this.popupContainer.innerHTML = '';
+                                this.popupContainer.classList.add('placeholder');
+                            }
+                        });
+
                         this._marker.element.setAttribute('uk-toggle', 'target: ' + modalId);
                     }
                 }
@@ -436,7 +462,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         _togglePopup(e)
         {
             // Если всплывающее окно уже открыто - ничего не делаем
-            if (e && this._popupIsOpen)
+            if (e && this._popupIsOpen && !this._props.is_popup_modal)
             {
                 return;
             }
@@ -472,10 +498,23 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
 
                 let markerInstance = this;
+                const popupRequestId = ++popupRequestSequence;
+                const popupRequestModuleId = String(this._props.module_id);
+                latestPopupRequestByModule.set(popupRequestModuleId, popupRequestId);
 
                 Joomla.request({
                     url: window.location.origin + "/index.php?option=com_ajax&module=wtyandexmapitems&module_id=" + this._props.module_id + "&Itemid=" + this._props.item_id + "&marker_id=" + this._props.id + "&format=raw",
                     onSuccess: function (response, xhr) {
+                        if (latestPopupRequestByModule.get(popupRequestModuleId) !== popupRequestId)
+                        {
+                            return;
+                        }
+
+                        if (!markerInstance._props.is_popup_modal && (!markerInstance._popupIsOpen || lastMarkerWithOpenedPopup !== markerInstance))
+                        {
+                            return;
+                        }
+
                         const responseObj = JSON.parse(response);
                         const popupData = responseObj.data;
 
