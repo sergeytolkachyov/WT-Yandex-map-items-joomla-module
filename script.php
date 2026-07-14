@@ -1,7 +1,7 @@
 <?php
 /**
  * @package       WT Yandex map items
- * @version    2.3.2
+ * @version    2.3.2.1
  * @author     Sergey Tolkachyov
  * @copyright  Copyright (c) 2022 - 2026 WebTolk, Sergey Tolkachyov. All rights reserved.
  * @license    GNU/GPL license: https://www.gnu.org/copyleft/gpl.html
@@ -70,13 +70,6 @@ return new class () implements ServiceProviderInterface {
             protected string $minimumPhp = '8.0';
 
             /**
-             * @var array $providersInstallationMessageQueue
-             *
-             * @since 2.0.0
-             */
-            protected $providersInstallationMessageQueue = [];
-
-            /**
              * Constructor
              *
              * @param AdministratorApplication $app The application object
@@ -130,7 +123,7 @@ return new class () implements ServiceProviderInterface {
             {
                 // Remove layouts
                 $this->removeLayouts($adapter->getParent()->getManifest()->layouts);
-                
+
                 return true;
             }
 
@@ -369,7 +362,7 @@ return new class () implements ServiceProviderInterface {
 			{
 				if (!empty($smile))
 				{
-					$smile .= $smile.' ';
+					$smile .= ' ';
 				}
 
 				$element = strtoupper($element);

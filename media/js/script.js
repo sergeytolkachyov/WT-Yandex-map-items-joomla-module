@@ -37,10 +37,72 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     const openedPopupMarkerZIndex = '10000';
+    const openedPopupContentZIndex = '10001';
 
     function getMarkerRoot(container)
     {
         return container ? container.closest('.ymaps3--marker') : null;
+    }
+
+    function addUniqueElement(elements, element)
+    {
+        if (element && element instanceof HTMLElement && !elements.includes(element))
+        {
+            elements.push(element);
+        }
+    }
+
+    function getMarkerPopupStackElements(markerInstance)
+    {
+        const elements = [];
+        const markerElement = markerInstance && markerInstance._marker ? markerInstance._marker.element : null;
+        const markerRoot = getMarkerRoot(markerInstance._container) || getMarkerRoot(markerElement);
+
+        addUniqueElement(elements, markerRoot);
+        addUniqueElement(elements, markerInstance._container);
+        addUniqueElement(elements, markerElement);
+        addUniqueElement(elements, markerInstance._popup);
+        addUniqueElement(elements, getPopupContainer(markerInstance._popup));
+
+        return elements;
+    }
+
+    function raiseElementZIndex(element, zIndex)
+    {
+        if (element.dataset.wtyandexmapitemsPopupZIndexRaised !== '1')
+        {
+            element.dataset.wtyandexmapitemsInitialZIndex = element.style.zIndex || '';
+            element.dataset.wtyandexmapitemsInitialZIndexPriority = element.style.getPropertyPriority('z-index') || '';
+            element.dataset.wtyandexmapitemsInitialPosition = element.style.position || '';
+            element.dataset.wtyandexmapitemsPopupZIndexRaised = '1';
+        }
+
+        if (window.getComputedStyle(element).position === 'static')
+        {
+            element.style.position = 'relative';
+        }
+
+        element.style.setProperty('z-index', zIndex, 'important');
+    }
+
+    function restoreElementZIndex(element)
+    {
+        if (element.dataset.wtyandexmapitemsPopupZIndexRaised !== '1')
+        {
+            return;
+        }
+
+        element.style.setProperty(
+            'z-index',
+            element.dataset.wtyandexmapitemsInitialZIndex || '',
+            element.dataset.wtyandexmapitemsInitialZIndexPriority || ''
+        );
+        element.style.position = element.dataset.wtyandexmapitemsInitialPosition || '';
+
+        delete element.dataset.wtyandexmapitemsInitialZIndex;
+        delete element.dataset.wtyandexmapitemsInitialZIndexPriority;
+        delete element.dataset.wtyandexmapitemsInitialPosition;
+        delete element.dataset.wtyandexmapitemsPopupZIndexRaised;
     }
 
     function setMarkerPopupZIndex(markerInstance, isOpened)
@@ -50,31 +112,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        const markerRoot = getMarkerRoot(markerInstance._container);
-
-        if (!markerRoot)
-        {
-            return;
-        }
+        const stackElements = getMarkerPopupStackElements(markerInstance);
 
         if (isOpened)
         {
-            if (markerRoot.dataset.wtyandexmapitemsPopupZIndexRaised !== '1')
-            {
-                markerRoot.dataset.wtyandexmapitemsInitialZIndex = markerRoot.style.zIndex || '';
-                markerRoot.dataset.wtyandexmapitemsPopupZIndexRaised = '1';
-            }
-
-            markerRoot.style.zIndex = openedPopupMarkerZIndex;
+            stackElements.forEach(element => {
+                raiseElementZIndex(element, element === markerInstance._popup || element === getPopupContainer(markerInstance._popup) ? openedPopupContentZIndex : openedPopupMarkerZIndex);
+            });
             return;
         }
 
-        if (markerRoot.dataset.wtyandexmapitemsPopupZIndexRaised === '1')
-        {
-            markerRoot.style.zIndex = markerRoot.dataset.wtyandexmapitemsInitialZIndex || '';
-            delete markerRoot.dataset.wtyandexmapitemsInitialZIndex;
-            delete markerRoot.dataset.wtyandexmapitemsPopupZIndexRaised;
-        }
+        stackElements.forEach(restoreElementZIndex);
     }
 
     function getModuleOverlay(moduleId)
