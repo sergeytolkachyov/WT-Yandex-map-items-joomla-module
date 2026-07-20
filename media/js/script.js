@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const {YMapListener} = ymaps3;
     const storageKeyPrefix = 'mod_wtyandexmapitems';
     let yandexDefaultUiThemePackage = null;
+    let yandexWorldUtilsPackage = null;
 
     let lastMarkerWithOpenedPopup = null;
     let popupRequestSequence = 0;
@@ -112,14 +113,27 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        const stackElements = getMarkerPopupStackElements(markerInstance);
+        const markerRoot = getMarkerRoot(markerInstance._container)
+            || getMarkerRoot(markerInstance._marker ? markerInstance._marker.element : null);
+        const stackElements = getMarkerPopupStackElements(markerInstance).filter(element => element !== markerRoot);
 
         if (isOpened)
         {
+            if (markerRoot)
+            {
+                markerRoot.classList.add('wt-yandex-map-items-marker-popup-open');
+            }
+
             stackElements.forEach(element => {
                 raiseElementZIndex(element, element === markerInstance._popup || element === getPopupContainer(markerInstance._popup) ? openedPopupContentZIndex : openedPopupMarkerZIndex);
             });
             return;
+        }
+
+        if (markerRoot)
+        {
+            markerRoot.classList.remove('wt-yandex-map-items-marker-popup-open');
+            restoreElementZIndex(markerRoot);
         }
 
         stackElements.forEach(restoreElementZIndex);
@@ -149,6 +163,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         return yandexDefaultUiThemePackage;
+    }
+
+    async function getYandexWorldUtilsPackage()
+    {
+        if (!yandexWorldUtilsPackage)
+        {
+            if (ymaps3.import.registerCdn)
+            {
+                ymaps3.import.registerCdn('https://cdn.jsdelivr.net/npm/{package}', [
+                    '@yandex/ymaps3-world-utils@0.0'
+                ]);
+            }
+
+            yandexWorldUtilsPackage = ymaps3.import('@yandex/ymaps3-world-utils').catch(error => {
+                console.warn('wtyandexmapitems [Warning]: Failed to load Yandex Maps world utilities package.', error);
+
+                return {};
+            });
+        }
+
+        return yandexWorldUtilsPackage;
     }
 
     function normalizeMapControls(controls)
@@ -564,6 +599,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (e && isInlinePopupOpened)
             {
                 lastMarkerWithOpenedPopup = this;
+
+                if (typeof this._props.ensurePopupInBounds === 'function')
+                {
+                    this._props.ensurePopupInBounds(this);
+                }
             }
 
             if (e && this._props.has_popup)
@@ -617,6 +657,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                             markerInstance.popupContainer.innerHTML = markerInstance._processTemplate(templateInnerHTML, popupData);
                             markerInstance.popupContainer.classList.remove('placeholder');
+
+                            if (!markerInstance._props.is_popup_modal && typeof markerInstance._props.ensurePopupInBounds === 'function')
+                            {
+                                markerInstance._props.ensurePopupInBounds(markerInstance);
+                            }
                         }
                     }
                 });
@@ -726,6 +771,74 @@ document.addEventListener('DOMContentLoaded', async () => {
                 margin: [marginPx, marginPx, marginPx, marginPx]
             }
         );
+        let currentMapLocation = {
+            center: mapCenter,
+            zoom: mapZoom
+        };
+
+        async function ensurePopupInBounds(markerInstance)
+        {
+            await new Promise(resolve => window.requestAnimationFrame(resolve));
+
+            if (!markerInstance || !markerInstance._popupIsOpen || markerInstance._props.is_popup_modal || !markerInstance._popup)
+            {
+                return;
+            }
+
+            const popupRect = markerInstance._popup.getBoundingClientRect();
+            const mapRect = mapHtmlObject.getBoundingClientRect();
+            const viewportPadding = 16;
+            const usableWidth = mapRect.width - viewportPadding * 2;
+            const usableHeight = mapRect.height - viewportPadding * 2;
+
+            if (popupRect.width > usableWidth || popupRect.height > usableHeight || !Array.isArray(currentMapLocation.center) || !Number.isFinite(currentMapLocation.zoom))
+            {
+                return;
+            }
+
+            const popupCenterX = popupRect.left + popupRect.width / 2;
+            const popupCenterY = popupRect.top + popupRect.height / 2;
+            const targetCenterX = Math.min(
+                Math.max(popupCenterX, mapRect.left + viewportPadding + popupRect.width / 2),
+                mapRect.right - viewportPadding - popupRect.width / 2
+            );
+            const targetCenterY = Math.min(
+                Math.max(popupCenterY, mapRect.top + viewportPadding + popupRect.height / 2),
+                mapRect.bottom - viewportPadding - popupRect.height / 2
+            );
+            const shiftX = targetCenterX - popupCenterX;
+            const shiftY = targetCenterY - popupCenterY;
+
+            if (Math.abs(shiftX) < 1 && Math.abs(shiftY) < 1)
+            {
+                return;
+            }
+
+            const worldUtils = await getYandexWorldUtilsPackage();
+
+            if (!markerInstance._popupIsOpen || !worldUtils.worldToPixels || !worldUtils.pixelsToWorld || !map.projection)
+            {
+                return;
+            }
+
+            const zoom = currentMapLocation.zoom;
+            const centerWorld = map.projection.toWorldCoordinates(currentMapLocation.center);
+            const centerPixels = worldUtils.worldToPixels({x: centerWorld.x, y: centerWorld.y}, zoom);
+            const nextCenterWorld = worldUtils.pixelsToWorld({
+                x: centerPixels.x - shiftX,
+                y: centerPixels.y - shiftY
+            }, zoom);
+            const nextCenter = map.projection.fromWorldCoordinates({x: nextCenterWorld.x, y: nextCenterWorld.y});
+
+            map.update({
+                location: {
+                    center: nextCenter,
+                    zoom: zoom,
+                    easing: 'ease-in-out',
+                    duration: 250
+                }
+            });
+        }
 
         // Добавляем слой на карту, в зависимости от указанного типа
         switch (backendModuleParams['type'])
@@ -808,6 +921,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             is_popup_modal: isPopupModal,
                             popup_framework: popupFramework,
                             popup: {maxHeight: popupMaxHeight, header: feature.item.title, content: 'default text', position: 'right'},
+                            ensurePopupInBounds: ensurePopupInBounds,
                             wtYandexMapItemsModuleParams: {useOverlay: useOverlay}
                         });
                     }
@@ -868,6 +982,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Создание объекта-слушателя.
         const mapListener = new YMapListener({
             layer: 'any',
+            onUpdate: ({location}) => {
+                if (location && Array.isArray(location.center) && Number.isFinite(location.zoom))
+                {
+                    currentMapLocation = {
+                        center: location.center,
+                        zoom: location.zoom
+                    };
+                }
+            },
             onActionEnd: ({type, camera, location}) => {
                 mapActionEndHandler({type, camera, location, module_id, mapOptions: backendModuleParams});
             }

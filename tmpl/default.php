@@ -1,7 +1,7 @@
 <?php
 /**
  * @package       WT Yandex map items
- * @version    2.3.2.1
+ * @version    2.3.3
  * @author     Sergey Tolkachyov
  * @copyright  Copyright (c) 2022 - 2026 WebTolk, Sergey Tolkachyov. All rights reserved.
  * @license    GNU/GPL license: https://www.gnu.org/copyleft/gpl.html
@@ -50,6 +50,7 @@ if (!$wa->assetExists('script','module.wtyandexmapitems.yandex') && !$wa->assetE
 }
 
 $wa->registerAndUseScript('module.wtyandexmapitems.script', 'mod_wtyandexmapitems/script.js', [], ['defer' => true]);
+$wa->registerAndUseStyle('module.wtyandexmapitems.style', 'mod_wtyandexmapitems/style.css');
 
 $isPopupModal = $params->get('use_popup') === 'custom' && $params->get('popup_type') === 'modal';
 
