@@ -1,6 +1,6 @@
 /**
  * @package       WT Yandex map items
- * @version    2.3.0
+ * @version    2.3.4
  * @author     Sergey Tolkachyov
  * @copyright  Copyright (c) 2022 - 2026 WebTolk, Sergey Tolkachyov. All rights reserved.
  * @license    GNU/GPL license: https://www.gnu.org/copyleft/gpl.html
@@ -10,35 +10,50 @@
 
 document.addEventListener('DOMContentLoaded', async () => {
     await ymaps3.ready;
-    const {YMapDefaultMarker} = await ymaps3.import('@yandex/ymaps3-markers@0.0.1');
-    const {YMapListener} = ymaps3;
     const storageKeyPrefix = 'mod_wtyandexmapitems';
     let yandexDefaultUiThemePackage = null;
     let yandexWorldUtilsPackage = null;
+    let yandexClustererPackage = null;
+
+    const defaultUiThemePackage = await getYandexDefaultUiThemePackage();
+    const {YMapDefaultMarker, YMapPopupMarker} = defaultUiThemePackage;
+    const {YMapListener} = ymaps3;
+
+    if (!YMapDefaultMarker || !defaultUiThemePackage.YMapPopupMarker)
+    {
+        console.warn('wtyandexmapitems [Error]: Yandex Maps default UI theme marker package is unavailable.');
+        return;
+    }
 
     let lastMarkerWithOpenedPopup = null;
     let popupRequestSequence = 0;
     const latestPopupRequestByModule = new Map();
-    const k = 'ymaps3x0--default-marker__';
+    const mobilePopupMediaQuery = '(max-width: 767.98px)';
 
     function getMarkerIconBox(container)
     {
-        return container.querySelector('ymaps.' + k + 'icon-box')
-            || container.querySelector('[class$="icon-box"]')
+        if (!container)
+        {
+            return null;
+        }
+
+        return container.querySelector('[class$="icon-box"]')
             || container.querySelector('[class*="icon-box"]')
             || container;
     }
 
     function getPopupContainer(popup)
     {
-        return popup.querySelector(`.${k}popup-container`)
-            || popup.querySelector('[class$="popup-container"]')
+        if (!popup)
+        {
+            return null;
+        }
+
+        return popup.querySelector('[class$="popup-container"]')
             || popup.querySelector('[class*="popup-container"]')
+            || popup.querySelector('.ymaps3--popup-marker_container')
             || popup;
     }
-
-    const openedPopupMarkerZIndex = '10000';
-    const openedPopupContentZIndex = '10001';
 
     function getMarkerRoot(container)
     {
@@ -53,57 +68,66 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    function getMarkerElement(markerInstance)
+    {
+        if (!markerInstance)
+        {
+            return null;
+        }
+
+        return markerInstance._marker && markerInstance._marker.element
+            ? markerInstance._marker.element
+            : null;
+    }
+
+    function getMarkerVisualElement(markerInstance)
+    {
+        if (!markerInstance)
+        {
+            return null;
+        }
+
+        return markerInstance._markerElement || markerInstance._container || getMarkerElement(markerInstance);
+    }
+
+    function getPopupElement(markerInstance)
+    {
+        if (!markerInstance || !markerInstance._popup)
+        {
+            return null;
+        }
+
+        return markerInstance._popup._markerElement || markerInstance._popup;
+    }
+
+    function getPopupContainerElement(markerInstance)
+    {
+        if (!markerInstance || !markerInstance._popup)
+        {
+            return null;
+        }
+
+        return markerInstance._popup._popupContainer || getPopupContainer(getPopupElement(markerInstance));
+    }
+
     function getMarkerPopupStackElements(markerInstance)
     {
         const elements = [];
-        const markerElement = markerInstance && markerInstance._marker ? markerInstance._marker.element : null;
-        const markerRoot = getMarkerRoot(markerInstance._container) || getMarkerRoot(markerElement);
+        const markerElement = getMarkerElement(markerInstance);
+        const markerVisualElement = getMarkerVisualElement(markerInstance);
+        const popupElement = getPopupElement(markerInstance);
+        const popupContainer = getPopupContainerElement(markerInstance);
+        const markerRoot = getMarkerRoot(markerVisualElement) || getMarkerRoot(markerElement);
+        const popupRoot = getMarkerRoot(popupElement);
 
         addUniqueElement(elements, markerRoot);
-        addUniqueElement(elements, markerInstance._container);
+        addUniqueElement(elements, markerVisualElement);
         addUniqueElement(elements, markerElement);
-        addUniqueElement(elements, markerInstance._popup);
-        addUniqueElement(elements, getPopupContainer(markerInstance._popup));
+        addUniqueElement(elements, popupRoot);
+        addUniqueElement(elements, popupElement);
+        addUniqueElement(elements, popupContainer);
 
         return elements;
-    }
-
-    function raiseElementZIndex(element, zIndex)
-    {
-        if (element.dataset.wtyandexmapitemsPopupZIndexRaised !== '1')
-        {
-            element.dataset.wtyandexmapitemsInitialZIndex = element.style.zIndex || '';
-            element.dataset.wtyandexmapitemsInitialZIndexPriority = element.style.getPropertyPriority('z-index') || '';
-            element.dataset.wtyandexmapitemsInitialPosition = element.style.position || '';
-            element.dataset.wtyandexmapitemsPopupZIndexRaised = '1';
-        }
-
-        if (window.getComputedStyle(element).position === 'static')
-        {
-            element.style.position = 'relative';
-        }
-
-        element.style.setProperty('z-index', zIndex, 'important');
-    }
-
-    function restoreElementZIndex(element)
-    {
-        if (element.dataset.wtyandexmapitemsPopupZIndexRaised !== '1')
-        {
-            return;
-        }
-
-        element.style.setProperty(
-            'z-index',
-            element.dataset.wtyandexmapitemsInitialZIndex || '',
-            element.dataset.wtyandexmapitemsInitialZIndexPriority || ''
-        );
-        element.style.position = element.dataset.wtyandexmapitemsInitialPosition || '';
-
-        delete element.dataset.wtyandexmapitemsInitialZIndex;
-        delete element.dataset.wtyandexmapitemsInitialZIndexPriority;
-        delete element.dataset.wtyandexmapitemsInitialPosition;
-        delete element.dataset.wtyandexmapitemsPopupZIndexRaised;
     }
 
     function setMarkerPopupZIndex(markerInstance, isOpened)
@@ -113,32 +137,47 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        const markerRoot = getMarkerRoot(markerInstance._container)
-            || getMarkerRoot(markerInstance._marker ? markerInstance._marker.element : null);
+        const markerRoot = getMarkerRoot(getMarkerVisualElement(markerInstance))
+            || getMarkerRoot(getMarkerElement(markerInstance));
         const stackElements = getMarkerPopupStackElements(markerInstance).filter(element => element !== markerRoot);
-
-        if (isOpened)
-        {
-            if (markerRoot)
-            {
-                markerRoot.classList.add('wt-yandex-map-items-marker-popup-open');
-            }
-
-            stackElements.forEach(element => {
-                raiseElementZIndex(element, element === markerInstance._popup || element === getPopupContainer(markerInstance._popup) ? openedPopupContentZIndex : openedPopupMarkerZIndex);
-            });
-            return;
-        }
 
         if (markerRoot)
         {
-            markerRoot.classList.remove('wt-yandex-map-items-marker-popup-open');
-            restoreElementZIndex(markerRoot);
+            markerRoot.classList.toggle('wt-yandex-map-items-marker-popup-open', isOpened);
         }
 
-        stackElements.forEach(restoreElementZIndex);
+        stackElements.forEach(element => {
+            element.classList.toggle('wt-yandex-map-items-popup-stack-open', isOpened);
+        });
     }
 
+    function updateMobilePopupMapBoundary(markerInstance)
+    {
+        if (!markerInstance || !markerInstance._props || !markerInstance._props.map_html_object)
+        {
+            return;
+        }
+
+        const mapElement = markerInstance._props.map_html_object;
+
+        if (!window.matchMedia(mobilePopupMediaQuery).matches)
+        {
+            mapElement.style.removeProperty('--wtymi-popup-mobile-map-bottom');
+            return;
+        }
+
+        const mapRect = mapElement.getBoundingClientRect();
+        const bottomOffset = Math.max(window.innerHeight - mapRect.bottom, 0);
+        mapElement.style.setProperty('--wtymi-popup-mobile-map-bottom', bottomOffset + 'px');
+    }
+
+    function resetMobilePopupMapBoundary(markerInstance)
+    {
+        if (markerInstance && markerInstance._props && markerInstance._props.map_html_object)
+        {
+            markerInstance._props.map_html_object.style.removeProperty('--wtymi-popup-mobile-map-bottom');
+        }
+    }
     function getModuleOverlay(moduleId)
     {
         return document.getElementById('mod_wtyandexmapitems_overlay_' + moduleId);
@@ -184,6 +223,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         return yandexWorldUtilsPackage;
+    }
+
+    async function getYandexClustererPackage()
+    {
+        if (!yandexClustererPackage)
+        {
+            if (ymaps3.import.registerCdn)
+            {
+                ymaps3.import.registerCdn('https://cdn.jsdelivr.net/npm/{package}', [
+                    '@yandex/ymaps3-clusterer@0.0'
+                ]);
+            }
+
+            yandexClustererPackage = ymaps3.import('@yandex/ymaps3-clusterer').catch(error => {
+                console.warn('wtyandexmapitems [Warning]: Failed to load Yandex Maps clusterer package.', error);
+
+                return {};
+            });
+        }
+
+        return yandexClustererPackage;
     }
 
     function normalizeMapControls(controls)
@@ -384,40 +444,132 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     /**
-     *  кастомный класс маркера, основанный на YMapDefaultMarker
+     *  Кастомный маркер модуля: публичный YMapMarker + YMapPopupMarker из default-ui-theme.
      */
-    class YMapCustomMarker extends YMapDefaultMarker
+    class YMapCustomMarker extends ymaps3.YMapComplexEntity
     {
-        _createContainer()
+        constructor(props)
         {
-            const container = super._createContainer();
-            // атрибут data-module-id для ymaps-контейнера
+            super(props);
+
+            this._marker = null;
+            this._popup = null;
+            this._markerElement = null;
+            this._popupIsOpen = false;
+            this._modalOverlayCloseBound = false;
+            this.popupHeader = null;
+            this.popupRoot = null;
+            this.popupContainer = null;
+            this.popupCloseButton = null;
+
+            if (props.has_popup && !props.is_popup_modal)
+            {
+                this.popupRoot = document.createElement('div');
+                this.popupRoot.className = 'wt-yandex-map-items-popup placeholder';
+                this.popupRoot.dataset.wtyandexmapitemsPopup = 'inline';
+                this.popupRoot.dataset.moduleId = props.module_id;
+                this.popupRoot.dataset.markerId = props.id;
+                this.popupRoot.dataset.state = 'loading';
+
+                this.popupCloseButton = document.createElement('button');
+                this.popupCloseButton.type = 'button';
+                this.popupCloseButton.className = 'wt-yandex-map-items-popup__close';
+                this.popupCloseButton.setAttribute('aria-label', 'Close popup');
+                this.popupCloseButton.textContent = '×';
+
+                this.popupContainer = document.createElement('div');
+                this.popupContainer.className = 'wt-yandex-map-items-popup__content placeholder';
+
+                this.popupRoot.appendChild(this.popupCloseButton);
+                this.popupRoot.appendChild(this.popupContainer);
+
+                this.popupCloseButton.addEventListener('click', event => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    this._togglePopup(false);
+                });
+            }
+        }
+
+        _onAttach()
+        {
+            this._markerElement = this._createMarkerElement();
+            this._marker = new ymaps3.YMapMarker({
+                coordinates: this._props.coordinates
+            }, this._markerElement);
+
+            this.addChild(this._marker);
+
+            if (this._props.has_popup && !this._props.is_popup_modal)
+            {
+                this._popup = new YMapPopupMarker({
+                    coordinates: this._props.coordinates,
+                    position: this._props.popup && this._props.popup.position ? this._props.popup.position : 'right',
+                    offset: this._props.popup && Number.isFinite(this._props.popup.offset) ? this._props.popup.offset : 8,
+                    show: false,
+                    content: () => this.popupRoot,
+                    onOpen: () => {
+                        this._syncPopupElements();
+                        this._setInlinePopupOpenState(true);
+                    },
+                    onClose: () => {
+                        this._togglePopup(false);
+                    }
+                });
+                this.addChild(this._popup);
+                this._syncPopupElements();
+            }
+
+            this._prepareModalTrigger();
+        }
+
+        _onDetach()
+        {
+            if (this._popup)
+            {
+                this.removeChild(this._popup);
+                this._popup = null;
+            }
+
+            if (this._marker)
+            {
+                this.removeChild(this._marker);
+                this._marker = null;
+            }
+        }
+
+        _onUpdate(changedProps)
+        {
+            if (changedProps.coordinates)
+            {
+                if (this._marker)
+                {
+                    this._marker.update({coordinates: changedProps.coordinates});
+                }
+
+                if (this._popup)
+                {
+                    this._popup.update({coordinates: changedProps.coordinates});
+                }
+            }
+        }
+
+        _createMarkerElement()
+        {
+            const container = document.createElement('div');
             container.dataset.moduleId = this._props.module_id;
-            // атрибут data-marker-id для ymaps-контейнера
             container.dataset.markerId = this._props.id;
             container.classList.add('wt-yandex-map-items-marker');
-            // CSS-класс для просмотренных маркеров
-            container.onclick = () => {
+            container.classList.toggle('wt-yandex-map-items-marker-has-popup', Boolean(this._props.has_popup));
+            container.classList.toggle('wt-yandex-map-items-marker-active', Boolean(this._props.isActive));
+            container.title = this._props.title || '';
+            container.addEventListener('click', event => {
+                event.preventDefault();
+                event.stopPropagation();
                 container.classList.add('wt-yandex-map-items-marker-viewed');
-            };
-            // Маркер определен как активный по GET-параметру map[marker_id]={marker_id}
-            if(this._props.isActive) {
-                container.classList.add('wt-yandex-map-items-marker-active');
-            }
+                this._togglePopup(true);
+            });
 
-            const iconBox = getMarkerIconBox(container);
-
-            // Иконка маркера - изображение
-            if (this._props.icon)
-            {
-                const icon = document.createElement('img');
-                icon.src = '/' + this._props.icon.url;
-                icon.alt = this._props.icon.alt_text;
-                icon.style = 'position:absolute;top:6px;left:8px;object-fit:cover;width:44px;height:44px;border-radius:50%;';
-                iconBox.appendChild(icon);
-            }
-
-            // Иконка маркера - макет
             if (this._props.marker_layout_id)
             {
                 const template = document.getElementById(this._props.marker_layout_id);
@@ -425,10 +577,62 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (template && template.content)
                 {
                     container.innerHTML = this._processTemplate(template.innerHTML, this._props.layout_data);
+                    return container;
                 }
             }
 
+            if (this._props.icon)
+            {
+                const imageMarker = document.createElement('div');
+                imageMarker.className = 'wt-yandex-map-items-marker__image-marker';
+
+                const icon = document.createElement('img');
+                const iconUrl = this._props.icon.url || '';
+                icon.src = iconUrl.charAt(0) === '/' ? iconUrl : '/' + iconUrl;
+                icon.alt = this._props.icon.alt_text || this._props.title || '';
+                icon.className = 'wt-yandex-map-items-marker__image';
+                imageMarker.appendChild(icon);
+
+                container.classList.add('wt-yandex-map-items-marker-has-image');
+                container.appendChild(imageMarker);
+
+                return container;
+            }
+
+            const defaultMarker = document.createElement('div');
+            defaultMarker.className = 'wt-yandex-map-items-marker__default-pin';
+            container.appendChild(defaultMarker);
+
             return container;
+        }
+
+        _syncPopupElements()
+        {
+            const popupElement = getPopupElement(this);
+            const popupContainer = getPopupContainerElement(this);
+
+            const popupRoot = getMarkerRoot(popupElement);
+
+            if (popupRoot && popupRoot instanceof HTMLElement)
+            {
+                popupRoot.classList.add('wt-yandex-map-items-popup-marker-root');
+                popupRoot.dataset.wtyandexmapitemsPopupMarkerRoot = '1';
+                popupRoot.dataset.moduleId = this._props.module_id;
+                popupRoot.dataset.markerId = this._props.id;
+            }
+
+            if (popupElement && popupElement instanceof HTMLElement)
+            {
+                popupElement.classList.add('wt-yandex-map-items-popup-marker');
+                popupElement.dataset.wtyandexmapitemsPopupMarker = '1';
+                popupElement.dataset.moduleId = this._props.module_id;
+                popupElement.dataset.markerId = this._props.id;
+            }
+
+            if (popupContainer && popupContainer instanceof HTMLElement)
+            {
+                popupContainer.classList.add('wt-yandex-map-items-popup-marker__container');
+            }
         }
 
         _processTemplate(template, templateData)
@@ -440,31 +644,25 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             let result = '';
 
-            // ищем "${variable}" или "${some.variable}" конструкции
             while (true)
             {
                 const match = template.match(/\${\w+(?:\.[\w-]+)*}/);
 
                 if (!match) break;
 
-                // удаляем вначале "${" и в конце "}"
                 const matchContent = match[0].substring(2, match[0].length - 1);
-                // получение свойства по ключу, разделенному точками
                 const props = matchContent.split('.');
                 let property = templateData;
                 props.forEach(prop => {
                     if (!property.hasOwnProperty(prop))
                     {
-                        // если такого свойства в объекте данных нет, то возвращаем шаблон обратно
                         property = match[0];
                         return;
                     }
                     property = property[prop];
                 });
 
-                // заменяем шаблон на значение свойства из json объекта
                 result += template.slice(0, match.index) + property;
-                //
                 template = template.slice(match.index + match[0].length);
             }
             result += template;
@@ -472,203 +670,257 @@ document.addEventListener('DOMContentLoaded', async () => {
             return result;
         }
 
-        _createPopup()
+        _prepareModalTrigger()
         {
-            if (!this._props.has_popup)
-            {
-                // Убираем стиль cursor: pointer, если у маркера нет всплывающего окна
-                this._container.style.cursor = 'auto';
-
-                this._popup = document.createElement('ymaps');
-                return this._popup;
-            }
-
-            if (this._props.is_popup_modal)
-            {
-                const modalId = `#popup-modal-${this._props.module_id}`;
-                const modalEl = document.querySelector(modalId);
-
-                if (this._props.popup_framework === 'bootstrap')
-                {
-
-                    this.popupContainer = document.querySelector(modalId + ' [data-wtyandexmapitems-popup-body]')
-                        || document.querySelector(modalId + ' .modal-body');
-                    this.popupHeader = document.querySelector(modalId + ' [data-wtyandexmapitems-popup-title]')
-                        || document.querySelector(modalId + ' .modal-title');
-                    this._marker.element.addEventListener('click', () => {
-                        if (this.popupHeader)
-                        {
-                            this.popupHeader.innerHTML = this._props.title;
-                        }
-
-                        if (this.popupContainer)
-                        {
-                            this.popupContainer.innerHTML = '';
-                            this.popupContainer.classList.add('placeholder');
-                        }
-
-                        if (modalEl && window.bootstrap && window.bootstrap.Modal)
-                        {
-                            const modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
-                            modal.show();
-                        }
-                    });
-                }
-                else if (this._props.popup_framework === 'uikit')
-                {
-                    this.popupContainer = document.querySelector(modalId + ' [data-wtyandexmapitems-popup-body]')
-                        || document.querySelector(modalId + ' .uk-modal-body');
-                    this.popupHeader = document.querySelector(modalId + ' [data-wtyandexmapitems-popup-title]')
-                        || document.querySelector(modalId + ' .uk-modal-title');
-
-                    if (modalEl)
-                    {
-                        this._marker.element.addEventListener('click', () => {
-                            if (this.popupHeader)
-                            {
-                                this.popupHeader.innerHTML = this._props.title;
-                            }
-
-                            if (this.popupContainer)
-                            {
-                                this.popupContainer.innerHTML = '';
-                                this.popupContainer.classList.add('placeholder');
-                            }
-                        });
-
-                        this._marker.element.setAttribute('uk-toggle', 'target: ' + modalId);
-                    }
-                }
-
-                if(this._props.wtYandexMapItemsModuleParams.useOverlay) {
-                    let overlay = getModuleOverlay(this._props.module_id);
-                    if (overlay && modalEl && this._props.popup_framework === 'bootstrap') {
-                        modalEl.addEventListener('hidden.bs.modal', (event) => {
-                            overlay.style.zIndex = -1;
-                        });
-                    } else if (overlay && window.UIkit && window.UIkit.util && this._props.popup_framework === 'uikit')
-                    {
-                        window.UIkit.util.on(modalId, 'hide', () => {
-                            overlay.style.zIndex = -1;
-                        });
-                    }
-                }
-
-                this._popup = document.createElement('ymaps');
-                return this._popup;
-            }
-
-            const result = super._createPopup();
-
-            this.popupContainer = getPopupContainer(this._popup);
-            this._popup.style.alignItems = 'start';
-
-            this.popupContainer.style.flex = '1 1 auto';
-            this.popupContainer.style.textWrap = 'auto';
-            this.popupContainer.style.overflow = 'auto';
-            this.popupContainer.style.maxHeight = this._popupProps.maxHeight + 'px';
-
-            return result;
-        }
-
-        _togglePopup(e)
-        {
-            // Если всплывающее окно уже открыто - ничего не делаем
-            if (e && this._popupIsOpen && !this._props.is_popup_modal)
+            if (!this._props.has_popup || !this._props.is_popup_modal || this._props.popup_framework !== 'uikit')
             {
                 return;
             }
 
-            // закрываем последнее открытое всплывающие окно
-            if (e && lastMarkerWithOpenedPopup && lastMarkerWithOpenedPopup !== this)
+            this._markerElement.setAttribute('uk-toggle', 'target: #popup-modal-' + this._props.module_id);
+        }
+
+        _resolveModalElements()
+        {
+            const modalId = '#popup-modal-' + this._props.module_id;
+            const modalEl = document.querySelector(modalId);
+
+            this.popupContainer = document.querySelector(modalId + ' [data-wtyandexmapitems-popup-body]')
+                || document.querySelector(modalId + ' .modal-body')
+                || document.querySelector(modalId + ' .uk-modal-body');
+            this.popupHeader = document.querySelector(modalId + ' [data-wtyandexmapitems-popup-title]')
+                || document.querySelector(modalId + ' .modal-title')
+                || document.querySelector(modalId + ' .uk-modal-title');
+
+            return {modalId, modalEl};
+        }
+
+        _bindModalOverlayClose(modalId, modalEl)
+        {
+            if (this._modalOverlayCloseBound || !this._props.wtYandexMapItemsModuleParams.useOverlay)
             {
-                lastMarkerWithOpenedPopup._togglePopup(0);
+                return;
             }
 
-            super._togglePopup(e);
+            const overlay = getModuleOverlay(this._props.module_id);
 
-            const isInlinePopupOpened = Boolean(this._props.has_popup && !this._props.is_popup_modal && this._popupIsOpen);
-
-            setMarkerPopupZIndex(this, isInlinePopupOpened);
-
-            if (!isInlinePopupOpened && lastMarkerWithOpenedPopup === this)
+            if (overlay && modalEl && this._props.popup_framework === 'bootstrap')
             {
-                lastMarkerWithOpenedPopup = null;
-            }
-
-            if (e && isInlinePopupOpened)
-            {
-                lastMarkerWithOpenedPopup = this;
-
-                if (typeof this._props.ensurePopupInBounds === 'function')
-                {
-                    this._props.ensurePopupInBounds(this);
-                }
-            }
-
-            if (e && this._props.has_popup)
-            {
-                //this.popupTitle.classList.add('placeholder');
-                if (this.popupContainer)
-                {
-                    this.popupContainer.classList.add('placeholder');
-                }
-
-                let markerInstance = this;
-                const popupRequestId = ++popupRequestSequence;
-                const popupRequestModuleId = String(this._props.module_id);
-                latestPopupRequestByModule.set(popupRequestModuleId, popupRequestId);
-
-                Joomla.request({
-                    url: window.location.origin + "/index.php?option=com_ajax&module=wtyandexmapitems&module_id=" + this._props.module_id + "&Itemid=" + this._props.item_id + "&marker_id=" + this._props.id + "&format=raw",
-                    onSuccess: function (response, xhr) {
-                        if (latestPopupRequestByModule.get(popupRequestModuleId) !== popupRequestId)
-                        {
-                            return;
-                        }
-
-                        if (!markerInstance._props.is_popup_modal && (!markerInstance._popupIsOpen || lastMarkerWithOpenedPopup !== markerInstance))
-                        {
-                            return;
-                        }
-
-                        const responseObj = JSON.parse(response);
-                        const popupData = responseObj.data;
-
-                        const template = document.getElementById(popupData.popup_layout_id);
-
-                        if (markerInstance._props.is_popup_modal)
-                        {
-                            if (markerInstance.popupHeader)
-                            {
-                                markerInstance.popupHeader.innerHTML = markerInstance._props.title;
-                            }
-                        }
-
-                        if (template && template.content && markerInstance.popupContainer)
-                        {
-                            //markerInstance.popupTitle.innerHTML = popupData.item.title;
-                            //markerInstance.popupTitle.classList.remove('placeholder');
-                            // костыль для удаления лишнего автоматически добавленного слеш символа в шаблоне
-                            let templateInnerHTML = template.innerHTML.replaceAll('href="/', 'href="');
-                            // костыль для декодирования url encode символов в ссылочных атрибутах
-                            // при использовании yootheme шаблона
-                            templateInnerHTML = decodeURI(templateInnerHTML);
-
-                            markerInstance.popupContainer.innerHTML = markerInstance._processTemplate(templateInnerHTML, popupData);
-                            markerInstance.popupContainer.classList.remove('placeholder');
-
-                            if (!markerInstance._props.is_popup_modal && typeof markerInstance._props.ensurePopupInBounds === 'function')
-                            {
-                                markerInstance._props.ensurePopupInBounds(markerInstance);
-                            }
-                        }
-                    }
+                modalEl.addEventListener('hidden.bs.modal', () => {
+                    overlay.style.zIndex = -1;
                 });
+                this._modalOverlayCloseBound = true;
+            }
+            else if (overlay && window.UIkit && window.UIkit.util && this._props.popup_framework === 'uikit')
+            {
+                window.UIkit.util.on(modalId, 'hide', () => {
+                    overlay.style.zIndex = -1;
+                });
+                this._modalOverlayCloseBound = true;
             }
         }
-    }
 
+        _openModalPopup()
+        {
+            const {modalId, modalEl} = this._resolveModalElements();
+
+            if (this.popupHeader)
+            {
+                this.popupHeader.innerHTML = this._props.title;
+            }
+
+            this._setPopupLoading(true);
+            this._bindModalOverlayClose(modalId, modalEl);
+
+            if (this._props.popup_framework === 'bootstrap' && modalEl && window.bootstrap && window.bootstrap.Modal)
+            {
+                const modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
+                modal.show();
+            }
+            else if (this._props.popup_framework === 'uikit' && modalEl && window.UIkit && window.UIkit.modal)
+            {
+                const modal = window.UIkit.modal(modalEl);
+
+                if (modal && typeof modal.show === 'function')
+                {
+                    modal.show();
+                }
+            }
+        }
+
+        _bindMobilePopupBoundary()
+        {
+            if (!this._mobilePopupBoundaryHandler)
+            {
+                this._mobilePopupBoundaryHandler = () => updateMobilePopupMapBoundary(this);
+            }
+
+            updateMobilePopupMapBoundary(this);
+            window.addEventListener('resize', this._mobilePopupBoundaryHandler, {passive: true});
+            window.addEventListener('scroll', this._mobilePopupBoundaryHandler, {passive: true});
+        }
+
+        _unbindMobilePopupBoundary()
+        {
+            if (this._mobilePopupBoundaryHandler)
+            {
+                window.removeEventListener('resize', this._mobilePopupBoundaryHandler);
+                window.removeEventListener('scroll', this._mobilePopupBoundaryHandler);
+            }
+
+            resetMobilePopupMapBoundary(this);
+        }
+
+        _setPopupLoading(isLoading)
+        {
+            if (this.popupRoot)
+            {
+                this.popupRoot.classList.toggle('placeholder', isLoading);
+                this.popupRoot.dataset.state = isLoading ? 'loading' : 'ready';
+            }
+
+            if (this.popupContainer)
+            {
+                if (isLoading)
+                {
+                    this.popupContainer.innerHTML = '';
+                }
+
+                this.popupContainer.classList.toggle('placeholder', isLoading);
+            }
+        }
+
+        _setInlinePopupOpenState(isOpened)
+        {
+            setMarkerPopupZIndex(this, isOpened);
+            this._syncPopupElements();
+
+            if (this.popupRoot)
+            {
+                this.popupRoot.dataset.state = isOpened ? (this.popupContainer && this.popupContainer.classList.contains('placeholder') ? 'loading' : 'ready') : 'closed';
+            }
+
+            if (this._props.map_html_object)
+            {
+                this._props.map_html_object.dataset.wtyandexmapitemsPopupOpen = isOpened ? '1' : '0';
+            }
+
+            if (isOpened)
+            {
+                this._bindMobilePopupBoundary();
+            }
+            else
+            {
+                this._unbindMobilePopupBoundary();
+            }
+        }
+
+        _togglePopup(e)
+        {
+            if (!this._props.has_popup)
+            {
+                return;
+            }
+
+            if (this._props.is_popup_modal)
+            {
+                if (e)
+                {
+                    this._openModalPopup();
+                    this._requestPopupContent();
+                }
+
+                return;
+            }
+
+            const isOpening = Boolean(e);
+
+            if (isOpening && this._popupIsOpen)
+            {
+                return;
+            }
+
+            if (isOpening && lastMarkerWithOpenedPopup && lastMarkerWithOpenedPopup !== this)
+            {
+                lastMarkerWithOpenedPopup._togglePopup(false);
+            }
+
+            this._popupIsOpen = isOpening;
+
+            if (this._popup && typeof this._popup.update === 'function')
+            {
+                this._popup.update({show: isOpening});
+            }
+
+            this._setInlinePopupOpenState(isOpening);
+
+            if (!isOpening)
+            {
+                if (lastMarkerWithOpenedPopup === this)
+                {
+                    lastMarkerWithOpenedPopup = null;
+                }
+
+                return;
+            }
+
+            lastMarkerWithOpenedPopup = this;
+
+            if (typeof this._props.ensurePopupInBounds === 'function')
+            {
+                this._props.ensurePopupInBounds(this);
+            }
+
+            this._setPopupLoading(true);
+            this._requestPopupContent();
+        }
+
+        _requestPopupContent()
+        {
+            let markerInstance = this;
+            const popupRequestId = ++popupRequestSequence;
+            const popupRequestModuleId = String(this._props.module_id);
+            latestPopupRequestByModule.set(popupRequestModuleId, popupRequestId);
+
+            Joomla.request({
+                url: window.location.origin + "/index.php?option=com_ajax&module=wtyandexmapitems&module_id=" + this._props.module_id + "&Itemid=" + this._props.item_id + "&marker_id=" + this._props.id + "&format=raw",
+                onSuccess: function (response, xhr) {
+                    if (latestPopupRequestByModule.get(popupRequestModuleId) !== popupRequestId)
+                    {
+                        return;
+                    }
+
+                    if (!markerInstance._props.is_popup_modal && (!markerInstance._popupIsOpen || lastMarkerWithOpenedPopup !== markerInstance))
+                    {
+                        return;
+                    }
+
+                    const responseObj = JSON.parse(response);
+                    const popupData = responseObj.data;
+                    const template = document.getElementById(popupData.popup_layout_id);
+
+                    if (markerInstance._props.is_popup_modal && markerInstance.popupHeader)
+                    {
+                        markerInstance.popupHeader.innerHTML = markerInstance._props.title;
+                    }
+
+                    if (template && template.content && markerInstance.popupContainer)
+                    {
+                        let templateInnerHTML = template.innerHTML.replaceAll('href="/', 'href="');
+                        templateInnerHTML = decodeURI(templateInnerHTML);
+
+                        markerInstance.popupContainer.innerHTML = markerInstance._processTemplate(templateInnerHTML, popupData);
+                        markerInstance._setPopupLoading(false);
+
+                        if (!markerInstance._props.is_popup_modal && typeof markerInstance._props.ensurePopupInBounds === 'function')
+                        {
+                            markerInstance._props.ensurePopupInBounds(markerInstance);
+                        }
+                    }
+                }
+            });
+        }
+    }
     function normalizeMapCustomization(customization) {
         if (Array.isArray(customization)) {
             return customization;
@@ -693,6 +945,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function initMap(mapHtmlObject){
         // Числовой id модуля карты
         const module_id = parseInt(mapHtmlObject.getAttribute('data-wtyandexmapitems-module-id'), 10);
+        mapHtmlObject.classList.add('wt-yandex-map-items');
+        mapHtmlObject.dataset.wtyandexmapitemsPopupOpen = '0';
 
         // Числовой id текущего пункта меню
         const item_id = mapHtmlObject.getAttribute('data-item-id');
@@ -703,9 +957,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         let frontendModuleParams;
         // Отступ карты - 25% от меньшей величины размеров карты
         const marginPx = Math.min(mapHtmlObject.clientWidth, mapHtmlObject.clientHeight) / 4;
-
-        // Максимальная высота всплывающего окна
-        const popupMaxHeight = Math.min(mapHtmlObject.clientWidth, mapHtmlObject.clientHeight) - 60;
 
         // Использовать ли оверлей
         const useOverlay = backendModuleParams['useOverlay'];
@@ -766,7 +1017,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     center: mapCenter,
                     zoom: mapZoom
                 },
-                mode: backendModuleParams['type'] === 'scheme' && mapCustomization ? 'vector' : 'automatic',
+                mode: backendModuleParams['type'] === 'scheme' && mapCustomization ? 'vector' : 'raster',
                 showScaleInCopyrights: showScaleInCopyrights,
                 margin: [marginPx, marginPx, marginPx, marginPx]
             }
@@ -785,7 +1036,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
-            const popupRect = markerInstance._popup.getBoundingClientRect();
+            if (window.matchMedia(mobilePopupMediaQuery).matches)
+            {
+                return;
+            }
+
+            const popupElement = getPopupContainerElement(markerInstance) || getPopupElement(markerInstance) || markerInstance.popupRoot;
+
+            if (!popupElement)
+            {
+                return;
+            }
+
+            const popupRect = popupElement.getBoundingClientRect();
             const mapRect = mapHtmlObject.getBoundingClientRect();
             const viewportPadding = 16;
             const usableWidth = mapRect.width - viewportPadding * 2;
@@ -920,25 +1183,46 @@ document.addEventListener('DOMContentLoaded', async () => {
                             isActive: isActive,
                             is_popup_modal: isPopupModal,
                             popup_framework: popupFramework,
-                            popup: {maxHeight: popupMaxHeight, header: feature.item.title, content: 'default text', position: 'right'},
+                            popup: {position: 'right', offset: 8},
                             ensurePopupInBounds: ensurePopupInBounds,
+                            map_html_object: mapHtmlObject,
                             wtYandexMapItemsModuleParams: {useOverlay: useOverlay}
                         });
                     }
 
                     const clusterRender = (coords, features) => {
+                        const clusterElement = cluster(features.length, clusterOptions).cloneNode(true);
+                        const zoomToClusterBounds = event => {
+                            if (event && typeof event.preventDefault === 'function')
+                            {
+                                event.preventDefault();
+                            }
+
+                            if (event && typeof event.stopPropagation === 'function')
+                            {
+                                event.stopPropagation();
+                            }
+
+                            const currentZoom = Number(currentMapLocation.zoom);
+                            const fallbackZoom = Number(mapZoom);
+                            const nextZoomBase = Number.isFinite(currentZoom) ? currentZoom : fallbackZoom;
+                            const nextZoom = Math.min((Number.isFinite(nextZoomBase) ? nextZoomBase : 12) + 2, 20);
+
+                            map.update({location: {center: coords, zoom: nextZoom, easing: 'ease-in-out', duration: 250}});
+                        };
+
+                        clusterElement.addEventListener('click', zoomToClusterBounds);
+
                         return new ymaps3.YMapMarker({
                             coordinates: coords,
-                            onClick() {
-                                const bounds = getBounds(features.map(feature => feature.geometry.coordinates));
-                                map.update({location: {bounds: bounds, easing: 'ease-in-out', duration: 250}});
-                            }
-                        }, cluster(features.length, clusterOptions).cloneNode(true));
+                            onClick: zoomToClusterBounds,
+                            onFastClick: zoomToClusterBounds
+                        }, clusterElement);
                     }
 
                     if (clusterOptions.enabled)
                     {
-                        const {YMapClusterer, clusterByGrid} = await ymaps3.import('@yandex/ymaps3-clusterer@0.0.1');
+                        const {YMapClusterer, clusterByGrid} = await getYandexClustererPackage();
                         const clusterer = new YMapClusterer({
                             method: clusterByGrid({ gridSize: clusterOptions.gridSize }),
                             features: markers,
